@@ -1,1 +1,148 @@
-<!doctype html><html lang=""><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="/logo.png"><title>Sanyue ImgHub</title><script defer="defer" src="/js/app.f13cc65e.js"></script><link href="/css/app.def7ef9b.css" rel="stylesheet"></head><body><noscript><strong>We're sorry but sanyue_imghub doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id="app"></div></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素风机甲对战</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0f0f1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Press Start 2P', cursive;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+        }
+
+        #gameCanvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border: 4px solid #00ffaa;
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.5),
+                        inset 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            bottom: 4px;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+        }
+
+        .title {
+            font-size: 24px;
+            color: #00ffaa;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ffaa;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #ff6b35;
+            margin-bottom: 30px;
+        }
+
+        .button {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            padding: 15px 30px;
+            background: #16213e;
+            color: #00ffaa;
+            border: 4px solid #00ffaa;
+            cursor: pointer;
+            transition: all 0.1s;
+            text-shadow: 0 0 5px #00ffaa;
+        }
+
+        .button:hover {
+            background: #00ffaa;
+            color: #1a1a2e;
+            box-shadow: 0 0 20px #00ffaa;
+        }
+
+        .button:active {
+            transform: scale(0.95);
+        }
+
+        .controls-info {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffd700;
+            font-size: 8px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .winner-text {
+            font-size: 20px;
+            color: #ffd700;
+            text-shadow: 0 0 15px #ffd700;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="scanlines"></div>
+        
+        <div id="startScreen" class="overlay">
+            <div class="title">像素风机甲对战</div>
+            <div class="subtitle">PIXEL MECH BATTLE</div>
+            <button class="button" onclick="startGame()">开始游戏</button>
+            <div class="controls-info">
+                <div>玩家1: W/A/D 移动 | J 攻击 | K 防御</div>
+                <div style="margin-top: 5px;">玩家2: ↑/←/→ 移动 | , 攻击 | . 防御</div>
+            </div>
+        </div>
+        
+        <div id="gameOverScreen" class="overlay hidden">
+            <div id="winnerText" class="winner-text"></div>
+            <button class="button" onclick="restartGame()">再来一局</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
