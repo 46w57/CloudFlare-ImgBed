@@ -44,9 +44,9 @@ import { TileMap, RegionManager, DayNightCycle, WeatherSystem, regionMaps } from
 
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 600;
-const PLAYER_BASE_SPEED = 120;
-const PLAYER_WIDTH = 20;
-const PLAYER_HEIGHT = 28;
+const PLAYER_BASE_SPEED = 130;
+const PLAYER_WIDTH = 24;
+const PLAYER_HEIGHT = 44;
 const TILE_SIZE = 32;
 const INVINCIBLE_DURATION = 1.0;
 const DASH_COOLDOWN = 1.0;
@@ -1493,7 +1493,9 @@ class Game {
       const frame = anim.frames[e.animationFrame % anim.frames.length];
       const screen = this.camera.worldToScreen(e.x, e.y);
       const flipX = e.direction === Direction.Left;
-      this.renderer.drawSprite(sprite, frame, screen.sx, screen.sy, flipX);
+      const offsetX = (frame.width - e.width) / 2;
+      const offsetY = frame.height - e.height;
+      this.renderer.drawSprite(sprite, frame, screen.sx - offsetX, screen.sy - offsetY, flipX);
 
       if (e.type === 'enemy' || e.type === 'boss') {
         const enemy = e as Enemy;
@@ -1981,7 +1983,7 @@ class Game {
         type: 'enemy',
         x: spawn.x * TILE_SIZE,
         y: spawn.y * TILE_SIZE,
-        width: 24, height: 24,
+        width: 30, height: 42,
         vx: 0, vy: 0,
         direction: Direction.Down,
         hp: def.hp, maxHp: def.maxHp,
@@ -2015,7 +2017,7 @@ class Game {
         type: 'boss',
         x: spawn.x * TILE_SIZE,
         y: spawn.y * TILE_SIZE,
-        width: 40, height: 40,
+        width: 60, height: 84,
         vx: 0, vy: 0,
         direction: Direction.Down,
         hp: def.hp, maxHp: def.maxHp,
@@ -2054,7 +2056,7 @@ class Game {
         type: 'npc',
         x: spawn.x * TILE_SIZE,
         y: spawn.y * TILE_SIZE,
-        width: 20, height: 28,
+        width: 28, height: 42,
         vx: 0, vy: 0,
         direction: Direction.Down,
         hp: 1, maxHp: 1, mp: 0, maxMp: 0,

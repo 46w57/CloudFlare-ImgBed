@@ -144,7 +144,8 @@ export class Renderer {
       const offscreen = document.createElement('canvas');
       offscreen.width = frame.width;
       offscreen.height = frame.height;
-      const octx = offscreen.getContext('2d')!;
+      const octx = offscreen.getContext('2d');
+      if (!octx) return;
       octx.imageSmoothingEnabled = false;
 
       if (flipX) {
@@ -153,10 +154,12 @@ export class Renderer {
       }
 
       for (let row = 0; row < frame.height; row++) {
+        const rowData = frame.data[row];
+        if (!rowData) continue;
         for (let col = 0; col < frame.width; col++) {
           const srcCol = flipX ? frame.width - 1 - col : col;
-          const colorIndex = frame.data[row][srcCol];
-          if (colorIndex === 0) continue;
+          const colorIndex = rowData[srcCol];
+          if (colorIndex === 0 || !colorIndex) continue;
           const color = spriteData.palette[colorIndex];
           if (!color) continue;
           octx.fillStyle = color;
@@ -178,15 +181,19 @@ export class Renderer {
     if (!cached) {
       const h = tilePixels.length;
       const w = h > 0 ? tilePixels[0].length : 0;
+      if (w <= 0 || h <= 0) return;
       const offscreen = document.createElement('canvas');
       offscreen.width = w;
       offscreen.height = h;
-      const octx = offscreen.getContext('2d')!;
+      const octx = offscreen.getContext('2d');
+      if (!octx) return;
       octx.imageSmoothingEnabled = false;
       for (let row = 0; row < h; row++) {
+        const rowData = tilePixels[row];
+        if (!rowData) continue;
         for (let col = 0; col < w; col++) {
-          const colorIndex = tilePixels[row][col];
-          if (colorIndex === 0) continue;
+          const colorIndex = rowData[col];
+          if (colorIndex === 0 || !colorIndex) continue;
           const color = palette[colorIndex];
           if (!color) continue;
           octx.fillStyle = color;

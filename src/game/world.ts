@@ -1,32 +1,32 @@
 import { Region, MapData, MapLayer, SpawnPoint, MapTransition, Particle } from './types';
-import { getTile } from './sprites';
+import { getTile, TilePalettes } from './sprites';
 import { Camera, Renderer } from './engine';
 
 const TILE_KEYS: Record<number, string[]> = {
   [Region.Forest]: [
-    'forest_grass1', 'forest_grass2', 'forest_grass3', 'forest_dirt',
-    'forest_tree_trunk', 'forest_tree_top', 'forest_water', 'forest_stone',
-    'forest_bridge', 'forest_bush', 'forest_grass3',
+    'grass1', 'grass2', 'grass3', 'dirtPath',
+    'treeTrunkB', 'treeTrunkT', 'waterDeep', 'rock',
+    'log', 'bushL', 'grass3',
   ],
   [Region.Desert]: [
-    'desert_sand1', 'desert_sand2', 'desert_sandstone', 'desert_ruins_floor',
-    'desert_cactus', 'desert_dead_bush', 'desert_oasis_water', 'desert_sand1',
-    'desert_sandstone', 'desert_sand2',
+    'sand1', 'sand2', 'sandstonePath', 'ruinsFloor',
+    'cactus1', 'deadBush', 'oasisWater', 'sand1',
+    'sandstonePath', 'sand2',
   ],
   [Region.Snow]: [
-    'snow_ground1', 'snow_ground2', 'snow_ice', 'snow_frozen_water',
-    'snow_pine_tree', 'snow_rock', 'snow_ice_crystal', 'snow_ground1',
-    'snow_ground2', 'snow_rock',
+    'snow1', 'snow2', 'iceFlat', 'frozenWater',
+    'pineL', 'snowRock', 'icicleHang', 'snow1',
+    'snow2', 'snowRock',
   ],
   [Region.Ruins]: [
-    'ruins_broken_stone', 'ruins_crystal_floor', 'ruins_void_pool', 'ruins_metal_debris',
-    'ruins_energy_conduit', 'ruins_broken_pillar', 'ruins_void_pool', 'ruins_broken_stone',
-    'ruins_crystal_floor', 'ruins_energy_conduit',
+    'brokenStone1', 'brokenStone2', 'voidPool', 'metalGrate',
+    'energyConduit', 'brokenPillar', 'voidPool', 'brokenStone1',
+    'crackedFloor', 'energyConduit',
   ],
   [Region.HolyCity]: [
-    'holy_marble', 'holy_gold_trim', 'holy_water', 'holy_stained_glass',
-    'holy_angel_base', 'holy_floating_platform', 'holy_marble', 'holy_gold_trim',
-    'holy_stained_glass', 'holy_water',
+    'marbleWhite', 'marbleGold', 'holyWaterPool', 'stainedGlass',
+    'angelStatueBase', 'floatingPlatform', 'marbleWhite', 'marbleGold',
+    'stainedGlass', 'holyWaterPool',
   ],
 };
 
@@ -226,7 +226,10 @@ class TileMap {
           const tileKey = this.tileKeyMap[tileId];
           const tileData = getTile(tileKey);
           if (tileData) {
-            renderer.drawTile(tileData.pixels, screen.sx, screen.sy, tileData.palette, tileKey);
+            const palette = TilePalettes[tileKey];
+            if (palette) {
+              renderer.drawTile(tileData.data, screen.sx, screen.sy, palette, tileKey);
+            }
           }
         }
       }
