@@ -94,6 +94,47 @@ export class Renderer {
     this.ctx.clearRect(0, 0, this.width, this.height);
   }
 
+  drawPixelData(
+    pixelData: number[][],
+    x: number,
+    y: number,
+    palette: string[],
+    cacheKey?: string,
+  ): void {
+    const key = cacheKey || `px_${x}_${y}`;
+    let cached = this.tileCache.get(key);
+    const w = pixelData[0] ? pixelData[0].length : 0;
+    const h = pixelData.length;
+
+    if (!cached) {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = Math.max(1, w);
+      offscreen.height = Math.max(1, h);
+      const offCtx = offscreen.getContext('2d')!;
+      const imgData = offCtx.createImageData(w, h);
+      for (let py = 0; py < h; py++) {
+        for (let px = 0; px < w; px++) {
+          const colorIdx = (pixelData[py] && pixelData[py][px] !== undefined) ? pixelData[py][px] : 0;
+          const colorStr = palette[colorIdx] || (colorIdx === 0 ? 'transparent' : '#ffffff');
+          if (colorStr === 'transparent' || colorIdx === 0) continue;
+          const dstIdx = (py * w + px) * 4;
+          const hex = colorStr.replace('#', '');
+          if (hex.length === 6) {
+            imgData.data[dstIdx] = parseInt(hex.slice(0, 2), 16);
+            imgData.data[dstIdx + 1] = parseInt(hex.slice(2, 4), 16);
+            imgData.data[dstIdx + 2] = parseInt(hex.slice(4, 6), 16);
+            imgData.data[dstIdx + 3] = 255;
+          }
+        }
+      }
+      offCtx.putImageData(imgData, 0, 0);
+      cached = offscreen;
+      this.tileCache.set(key, cached);
+    }
+
+    this.ctx.drawImage(cached, Math.floor(x), Math.floor(y));
+  }
+
   drawTile(
     image: HTMLImageElement,
     srcX: number,

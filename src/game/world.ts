@@ -35,7 +35,7 @@ export class TileMap {
     this.tileKeyMap = new TileKeyMap(TILE_KEYS[data.region] || TILE_KEYS[Region.Forest]);
   }
 
-  render(renderer: { drawTile: (tilePixels: number[][], x: number, y: number, palette: string[], cacheKey?: string) => void }, camera: Camera): void {
+  render(renderer: { drawPixelData: (tilePixels: number[][], x: number, y: number, palette: string[], cacheKey?: string) => void }, camera: Camera): void {
     const layers = this.data.layers;
     for (let li = 0; li < layers.length; li++) {
       const layer = layers[li];
@@ -50,7 +50,7 @@ export class TileMap {
           const screenPos = camera.worldToScreen(x * TILE_SIZE, y * TILE_SIZE);
           if (screenPos.x > -TILE_SIZE && screenPos.x < camera.width + TILE_SIZE &&
               screenPos.y > -TILE_SIZE && screenPos.y < camera.height + TILE_SIZE) {
-            renderer.drawTile(tile.data, screenPos.x, screenPos.y, TilePalettes[key] || TilePalettes['grass1'], key);
+            renderer.drawPixelData(tile.data, screenPos.x, screenPos.y, TilePalettes[key] || TilePalettes['grass1'], key);
           }
         }
       }

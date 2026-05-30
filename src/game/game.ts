@@ -6,7 +6,7 @@ import {
 } from './types';
 import { InputManager, Camera, Renderer, Physics, GameLoop } from './engine';
 import { RegionManager, DayNightCycle, WeatherSystem } from './world';
-import { getSprite } from './sprites';
+import { getSprite, PP } from './sprites';
 import { dialogues, quests, endings } from './story';
 
 const GAME_WIDTH = 800;
@@ -1643,7 +1643,7 @@ export class Game {
 
     const map = this.regionManager.getCurrentMap();
     if (map) {
-      map.render(this.renderer as unknown as { drawTile: (tilePixels: number[][], x: number, y: number, palette: string[], cacheKey?: string) => void }, this.camera);
+      map.render(this.renderer as unknown as { drawPixelData: (tilePixels: number[][], x: number, y: number, palette: string[], cacheKey?: string) => void }, this.camera);
     }
 
     const allEntities: Array<{ entity: Player | Enemy | NPC; sortY: number }> = [];
@@ -1690,13 +1690,12 @@ export class Game {
           continue;
         }
 
-        // @ts-expect-error drawSprite signature mismatch — needs renderer refactor to support sprite-data-based drawing
-        this.renderer.drawSprite(
-          { id: spriteId, palette: ['#000'], width: frameData.width, height: frameData.height, animations: {} } as any,
-          frameData as any,
+        this.renderer.drawPixelData(
+          frameData.data,
           centerX,
           centerY,
-          entity.flipX
+          PP,
+          `sprite_${spriteId}`,
         );
 
         if (BOSS_TYPES[(entity as Enemy).enemyType]) {
