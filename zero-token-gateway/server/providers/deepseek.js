@@ -4,7 +4,8 @@ export class DeepSeekWebProvider {
     this.status = 'tested';
     this.models = [
       { id: 'deepseek-chat', name: 'DeepSeek Chat', contextWindow: 64000, maxTokens: 4096 },
-      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', contextWindow: 64000, maxTokens: 8192, reasoning: true }
+      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', contextWindow: 64000, maxTokens: 8192, reasoning: true },
+      { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro (Expert)', contextWindow: 128000, maxTokens: 16384, reasoning: true, expert: true }
     ];
     this.authConfig = {
       url: 'https://chat.deepseek.com',
@@ -34,6 +35,11 @@ export class DeepSeekWebProvider {
 
     if (params.model === 'deepseek-reasoner') {
       body.chat_mode = 'reasoner';
+    }
+
+    if (params.model === 'deepseek-v4-pro') {
+      body.chat_mode = 'expert';
+      body.model = 'deepseek-v4-pro';
     }
 
     const response = await fetch('https://chat.deepseek.com/api/v0/chat/completion', {

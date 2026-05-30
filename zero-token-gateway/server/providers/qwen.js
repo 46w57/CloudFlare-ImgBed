@@ -4,6 +4,7 @@ export class QwenWebProvider {
     this.displayName = variant === 'cn' ? 'Qwen Web (China)' : 'Qwen Web (International)';
     this.status = 'tested';
     this.models = [
+      { id: 'qwen-max', name: 'Qwen 3.7 Max', contextWindow: 131072, maxTokens: 16384 },
       { id: 'qwen-plus', name: 'Qwen 3.5 Plus', contextWindow: 131072, maxTokens: 8192 },
       { id: 'qwen-turbo', name: 'Qwen 3.5 Turbo', contextWindow: 131072, maxTokens: 8192 }
     ];
