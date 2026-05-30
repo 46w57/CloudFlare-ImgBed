@@ -4,7 +4,6 @@ import { models } from '@/data/models';
 
 export default function Timeline() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [scrollX, setScrollX] = useState(0);
 
   const sortedModels = [...models].sort((a, b) =>
     new Date(a.releaseDate).getTime() - new Date(b.releaseDate).getTime()
@@ -23,7 +22,7 @@ export default function Timeline() {
   const totalDays = (latest.getTime() - earliest.getTime()) / (1000 * 60 * 60 * 24);
 
   return (
-    <section className="relative z-10 px-4 py-20">
+    <section id="timeline" className="relative z-10 px-4 py-20">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="font-orbitron text-3xl md:text-4xl font-bold mb-4">
