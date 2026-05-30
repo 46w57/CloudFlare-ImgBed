@@ -1,0 +1,25 @@
+{
+  "name": "zero-token-gateway",
+  "version": "1.0.0",
+  "description": "Use LLMs without API tokens - standalone web gateway",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "node server/index.js",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "node server/index.js",
+    "start-chrome-debug": "bash scripts/start-chrome-debug.sh",
+    "onboard": "node server/onboard.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "cors": "^2.8.5",
+    "playwright": "^1.49.0",
+    "uuid": "^10.0.0",
+    "eventsource-parser": "^3.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
