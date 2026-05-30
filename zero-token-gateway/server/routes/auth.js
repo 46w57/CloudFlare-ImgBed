@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import { config, credentialStore, providerRegistry } from '../index.js';
+import { getConfig, getCredentialStore, getProviderRegistry } from '../services/app-context.js';
 import { captureCredentials, refreshCredentials, getChromeStatus } from '../cdp/chrome.js';
 
 export const authRouter = Router();
 
 authRouter.get('/providers', (req, res) => {
+  const providerRegistry = getProviderRegistry();
+  const credentialStore = getCredentialStore();
   const providers = providerRegistry.list();
   const credentials = credentialStore.list();
   res.json({
@@ -18,6 +20,9 @@ authRouter.get('/providers', (req, res) => {
 
 authRouter.post('/capture', async (req, res) => {
   try {
+    const providerRegistry = getProviderRegistry();
+    const config = getConfig();
+    const credentialStore = getCredentialStore();
     const { providerId } = req.body;
     if (!providerId) {
       return res.status(400).json({ error: 'providerId is required' });
@@ -54,6 +59,9 @@ authRouter.post('/capture', async (req, res) => {
 
 authRouter.post('/refresh', async (req, res) => {
   try {
+    const providerRegistry = getProviderRegistry();
+    const config = getConfig();
+    const credentialStore = getCredentialStore();
     const { providerId } = req.body;
     if (!providerId) {
       return res.status(400).json({ error: 'providerId is required' });
@@ -81,6 +89,7 @@ authRouter.post('/refresh', async (req, res) => {
 });
 
 authRouter.delete('/:providerId', (req, res) => {
+  const credentialStore = getCredentialStore();
   const { providerId } = req.params;
   credentialStore.remove(providerId);
   res.json({ success: true });
@@ -91,6 +100,7 @@ authRouter.get('/chrome-status', (req, res) => {
 });
 
 authRouter.get('/credentials', (req, res) => {
+  const credentialStore = getCredentialStore();
   const list = credentialStore.list();
   res.json(list);
 });

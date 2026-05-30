@@ -5,6 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { CredentialStore } from './services/credential-store.js';
 import { ProviderRegistry } from './providers/index.js';
+import { initAppContext } from './services/app-context.js';
 import { registerRoutes } from './routes/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -40,6 +41,8 @@ function loadConfig() {
 export const config = loadConfig();
 export const credentialStore = new CredentialStore(CREDENTIALS_DIR);
 export const providerRegistry = new ProviderRegistry();
+
+initAppContext(config, credentialStore, providerRegistry);
 
 async function main() {
   const app = express();

@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import { credentialStore, providerRegistry } from '../index.js';
+import { getCredentialStore, getProviderRegistry } from '../services/app-context.js';
 
 export const askonceRouter = Router();
 
 askonceRouter.post('/', async (req, res) => {
   try {
+    const credentialStore = getCredentialStore();
+    const providerRegistry = getProviderRegistry();
     const { message, providers, stream = true } = req.body;
 
     if (!message) {

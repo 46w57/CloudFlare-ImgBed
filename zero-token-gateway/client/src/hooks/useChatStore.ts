@@ -31,6 +31,12 @@ interface ProviderInfo {
   }>
   status: string
   configured: boolean
+  authConfig?: {
+    url: string
+    cookieDomains: string[]
+    bearerPattern: { urlContains: string }
+    cookieNames: string[]
+  }
   credentialInfo: {
     provider: string
     updatedAt: number

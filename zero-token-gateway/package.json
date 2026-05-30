@@ -1,25 +1,72 @@
 {
   "name": "zero-token-gateway",
   "version": "1.0.0",
-  "description": "Use LLMs without API tokens - standalone web gateway",
+  "description": "Use LLMs without API tokens - standalone desktop app",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "node server/index.js",
     "dev:client": "cd client && npm run dev",
+    "dev:electron": "npm run build && electron .",
     "build": "cd client && npm run build",
     "start": "node server/index.js",
     "start-chrome-debug": "bash scripts/start-chrome-debug.sh",
-    "onboard": "node server/onboard.js"
+    "onboard": "node server/onboard.js",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist:win": "npm run build && electron-builder --win"
   },
   "dependencies": {
-    "express": "^4.21.0",
     "cors": "^2.8.5",
+    "eventsource-parser": "^3.0.0",
+    "express": "^4.21.0",
     "playwright": "^1.49.0",
-    "uuid": "^10.0.0",
-    "eventsource-parser": "^3.0.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "concurrently": "^9.0.0"
+    "concurrently": "^9.0.0",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.zerotoken.gateway",
+    "productName": "Zero Token Gateway",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "client/dist/**/*",
+      ".data/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "client/dist",
+        "to": "client/dist"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        { "target": "dmg", "arch": ["universal"] },
+        { "target": "zip", "arch": ["universal"] }
+      ]
+    },
+    "linux": {
+      "category": "Development",
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] },
+        { "target": "deb", "arch": ["x64"] }
+      ]
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    }
   }
 }

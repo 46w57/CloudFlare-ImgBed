@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { providerRegistry, credentialStore } from '../index.js';
+import { getProviderRegistry, getCredentialStore } from '../services/app-context.js';
 
 export const modelsRouter = Router();
 
 modelsRouter.get('/', (req, res) => {
+  const providerRegistry = getProviderRegistry();
+  const credentialStore = getCredentialStore();
   const allModels = providerRegistry.listModels();
   const credentials = credentialStore.list();
 

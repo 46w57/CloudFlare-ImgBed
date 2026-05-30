@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { config, credentialStore, providerRegistry } from '../index.js';
+import { getConfig, getCredentialStore, getProviderRegistry } from '../services/app-context.js';
 import { StreamHandler } from '../services/stream-handler.js';
 import { shouldInjectTools, injectToolPrompt, parseToolCall, executeToolCall } from '../services/tool-calling.js';
 
@@ -9,6 +9,9 @@ const MAX_TOOL_ROUNDS = 3;
 
 chatRouter.post('/', async (req, res) => {
   try {
+    const config = getConfig();
+    const credentialStore = getCredentialStore();
+    const providerRegistry = getProviderRegistry();
     const { model, messages, stream = true, temperature, max_tokens } = req.body;
 
     if (!model) {
@@ -63,7 +66,7 @@ chatRouter.post('/', async (req, res) => {
       res.setHeader('Connection', 'keep-alive');
       res.setHeader('X-Accel-Buffering', 'no');
 
-      await handleStreamWithTools(provider, credentials, params, res, providerId, model);
+      await handleStreamWithTools(provider, credentials, params, res, providerId, model, config);
     } else {
       let fullContent = '';
       let toolRounds = 0;
@@ -122,7 +125,7 @@ chatRouter.post('/', async (req, res) => {
   }
 });
 
-async function handleStreamWithTools(provider, credentials, params, res, providerId, model) {
+async function handleStreamWithTools(provider, credentials, params, res, providerId, model, config) {
   let toolRounds = 0;
   let currentMessages = [...params.messages];
 

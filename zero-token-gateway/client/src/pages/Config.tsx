@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react'
 import { useChatStore } from '@/hooks/useChatStore'
 import { captureCredentials, refreshCredentials, deleteCredentials, getChromeStatus } from '@/services/api'
-import { Settings, RefreshCw, Trash2, Download, Wifi, WifiOff, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Settings, RefreshCw, Trash2, Download, Wifi, WifiOff, CheckCircle, XCircle, Loader2, ExternalLink } from 'lucide-react'
+
+const isElectron = !!(window as any).electronAPI
 
 export default function ConfigPage() {
   const providers = useChatStore(s => s.providers)
   const fetchProviders = useChatStore(s => s.fetchProviders)
   const fetchModels = useChatStore(s => s.fetchModels)
-  const [chromeConnected, setChromeConnected] = useState(false)
+  const [chromeConnected, setChromeConnected] = useState(isElectron)
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
 
   useEffect(() => {
-    checkChrome()
+    if (!isElectron) {
+      checkChrome()
+    }
   }, [])
 
   const checkChrome = async () => {
@@ -23,10 +27,26 @@ export default function ConfigPage() {
     }
   }
 
+  const handleLogin = async (providerId: string, url: string) => {
+    if (isElectron) {
+      const api = (window as any).electronAPI
+      await api.openLoginWindow(providerId)
+    } else {
+      window.open(url, '_blank')
+    }
+  }
+
   const handleCapture = async (providerId: string) => {
     setLoadingProvider(providerId)
     try {
-      const result = await captureCredentials(providerId)
+      let result
+      if (isElectron) {
+        const api = (window as any).electronAPI
+        result = await api.captureCredentials(providerId)
+      } else {
+        result = await captureCredentials(providerId)
+      }
+
       if (result.success) {
         await fetchProviders()
         await fetchModels()
@@ -43,7 +63,12 @@ export default function ConfigPage() {
   const handleRefresh = async (providerId: string) => {
     setLoadingProvider(providerId)
     try {
-      await refreshCredentials(providerId)
+      if (isElectron) {
+        const api = (window as any).electronAPI
+        await api.refreshCredentials(providerId)
+      } else {
+        await refreshCredentials(providerId)
+      }
       await fetchProviders()
     } catch (err: any) {
       alert(err.message)
@@ -72,7 +97,12 @@ export default function ConfigPage() {
             <h1 className="text-lg font-bold font-mono glow-text">Configuration</h1>
           </div>
           <div className="flex items-center gap-2">
-            {chromeConnected ? (
+            {isElectron ? (
+              <div className="flex items-center gap-1.5 text-accent text-sm">
+                <Wifi className="w-4 h-4" />
+                <span className="font-mono">Desktop Mode</span>
+              </div>
+            ) : chromeConnected ? (
               <div className="flex items-center gap-1.5 text-accent text-sm">
                 <Wifi className="w-4 h-4" />
                 <span className="font-mono">Chrome Connected</span>
@@ -88,7 +118,7 @@ export default function ConfigPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-6">
-        {!chromeConnected && (
+        {!isElectron && !chromeConnected && (
           <div className="mb-6 bg-warning/10 border border-warning/30 rounded-xl p-4 animate-fade-in">
             <h3 className="text-warning font-bold mb-2">⚠️ Chrome not connected</h3>
             <p className="text-text-secondary text-sm mb-2">
@@ -97,8 +127,15 @@ export default function ConfigPage() {
             <code className="block bg-bg-primary rounded-lg p-3 text-sm font-mono text-accent">
               google-chrome --remote-debugging-port=9222
             </code>
-            <p className="text-text-muted text-xs mt-2">
-              Then log into the AI platforms you want to use in the browser.
+          </div>
+        )}
+
+        {isElectron && (
+          <div className="mb-6 bg-accent/5 border border-accent/20 rounded-xl p-4 animate-fade-in">
+            <h3 className="text-accent font-bold mb-2">🖥️ Desktop Mode</h3>
+            <p className="text-text-secondary text-sm">
+              Click <strong>Login</strong> to open a login window for each provider. After logging in, click <strong>Capture</strong> to save credentials.
+              No external Chrome needed — the app uses its built-in browser.
             </p>
           </div>
         )}
@@ -143,20 +180,40 @@ export default function ConfigPage() {
 
               <div className="flex gap-2">
                 {!p.configured ? (
-                  <button
-                    onClick={() => handleCapture(p.id)}
-                    disabled={loadingProvider === p.id || !chromeConnected}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-mono hover:bg-accent/20 disabled:opacity-30 transition-all"
-                  >
-                    {loadingProvider === p.id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Download className="w-3 h-3" />
+                  <>
+                    {isElectron && (
+                      <button
+                        onClick={() => handleLogin(p.id, p.authConfig?.url)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-tertiary text-text-secondary text-xs font-mono hover:text-accent hover:bg-accent/10 transition-all"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Login
+                      </button>
                     )}
-                    Capture
-                  </button>
+                    <button
+                      onClick={() => handleCapture(p.id)}
+                      disabled={loadingProvider === p.id || (!isElectron && !chromeConnected)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-mono hover:bg-accent/20 disabled:opacity-30 transition-all"
+                    >
+                      {loadingProvider === p.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Download className="w-3 h-3" />
+                      )}
+                      Capture
+                    </button>
+                  </>
                 ) : (
                   <>
+                    {isElectron && (
+                      <button
+                        onClick={() => handleLogin(p.id, p.authConfig?.url)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg-tertiary text-text-secondary text-xs font-mono hover:text-accent hover:bg-accent/10 transition-all"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Login
+                      </button>
+                    )}
                     <button
                       onClick={() => handleRefresh(p.id)}
                       disabled={loadingProvider === p.id}
