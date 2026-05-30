@@ -3,9 +3,10 @@ export class DeepSeekWebProvider {
     this.displayName = 'DeepSeek Web';
     this.status = 'tested';
     this.models = [
-      { id: 'deepseek-chat', name: 'DeepSeek Chat', contextWindow: 64000, maxTokens: 4096 },
-      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner', contextWindow: 64000, maxTokens: 8192, reasoning: true },
-      { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro (Expert)', contextWindow: 128000, maxTokens: 16384, reasoning: true, expert: true }
+      { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', contextWindow: 1000000, maxTokens: 384000 },
+      { id: 'deepseek-v4-pro', name: 'DeepSeek V4 Pro (Expert)', contextWindow: 1000000, maxTokens: 384000, reasoning: true, expert: true },
+      { id: 'deepseek-chat', name: 'DeepSeek Chat (Legacy)', contextWindow: 64000, maxTokens: 4096 },
+      { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (Legacy)', contextWindow: 64000, maxTokens: 8192, reasoning: true }
     ];
     this.authConfig = {
       url: 'https://chat.deepseek.com',
@@ -19,27 +20,30 @@ export class DeepSeekWebProvider {
     const { cookie, bearer, userAgent } = credentials;
     const headers = {
       'Content-Type': 'application/json',
-      'User-Agent': userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      'Cookie': cookie
+      'User-Agent': userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+      'Cookie': cookie,
+      'Accept': 'text/event-stream'
     };
     if (bearer) {
       headers['Authorization'] = `Bearer ${bearer}`;
     }
 
+    const model = params.model || 'deepseek-v4-flash';
+    const isExpert = model === 'deepseek-v4-pro';
+
     const body = {
-      chat_mode: 'normal',
-      model: params.model || 'deepseek-chat',
+      chat_mode: isExpert ? 'expert' : 'normal',
+      model: model,
       messages: this.convertMessages(params.messages),
       stream: params.stream !== false
     };
 
-    if (params.model === 'deepseek-reasoner') {
+    if (model === 'deepseek-reasoner') {
       body.chat_mode = 'reasoner';
     }
 
-    if (params.model === 'deepseek-v4-pro') {
-      body.chat_mode = 'expert';
-      body.model = 'deepseek-v4-pro';
+    if (params.thinking_enabled || isExpert) {
+      body.thinking_enabled = true;
     }
 
     const response = await fetch('https://chat.deepseek.com/api/v0/chat/completion', {

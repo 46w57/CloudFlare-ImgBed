@@ -161,13 +161,15 @@ async function handleStreamWithTools(provider, credentials, params, res, provide
                   || '';
                 fullContent += contentChunk;
               } catch {}
-              const normalized = StreamHandler.normalizeChunk(
-                data === '[DONE]' ? null : JSON.parse(data),
-                providerId
-              );
-              if (normalized) {
-                res.write(`data: ${JSON.stringify(normalized)}\n\n`);
-              }
+              try {
+                const normalized = StreamHandler.normalizeChunk(
+                  JSON.parse(data),
+                  providerId
+                );
+                if (normalized) {
+                  res.write(`data: ${JSON.stringify(normalized)}\n\n`);
+                }
+              } catch {}
             }
           }
         }

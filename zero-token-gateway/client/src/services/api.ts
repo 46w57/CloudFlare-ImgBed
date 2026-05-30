@@ -62,13 +62,31 @@ export async function sendMessage(content: string) {
 
           try {
             const parsed = JSON.parse(data)
-            const delta = parsed.choices?.[0]?.delta?.content || ''
+            const delta = parsed.choices?.[0]?.delta
             if (delta) {
-              store.appendStreamingContent(delta)
+              const content = delta.content || ''
+              const reasoningContent = delta.reasoning_content || ''
+
+              if (reasoningContent) {
+                store.appendStreamingContent(`<think>${reasoningContent}`)
+              }
+              if (content) {
+                const currentStreaming = useChatStore.getState().streamingContent
+                if (currentStreaming.includes('💭') && !currentStreaming.includes('</think>')) {
+                  useChatStore.setState({ streamingContent: currentStreaming + '</think>\n\n' + content })
+                } else {
+                  store.appendStreamingContent(content)
+                }
+              }
             }
           } catch {}
         }
       }
+    }
+
+    const currentStreaming = useChatStore.getState().streamingContent
+    if (currentStreaming.includes('💭') && !currentStreaming.includes('</think>')) {
+      useChatStore.setState({ streamingContent: currentStreaming + '</think>' })
     }
 
     store.finalizeStreaming()

@@ -4,9 +4,10 @@ export class QwenWebProvider {
     this.displayName = variant === 'cn' ? 'Qwen Web (China)' : 'Qwen Web (International)';
     this.status = 'tested';
     this.models = [
-      { id: 'qwen-max', name: 'Qwen 3.7 Max', contextWindow: 131072, maxTokens: 16384 },
-      { id: 'qwen-plus', name: 'Qwen 3.5 Plus', contextWindow: 131072, maxTokens: 8192 },
-      { id: 'qwen-turbo', name: 'Qwen 3.5 Turbo', contextWindow: 131072, maxTokens: 8192 }
+      { id: 'qwen3.7-max', name: 'Qwen 3.7 Max', contextWindow: 1000000, maxTokens: 384000, reasoning: true },
+      { id: 'qwen-max', name: 'Qwen Max', contextWindow: 131072, maxTokens: 8192 },
+      { id: 'qwen-plus', name: 'Qwen Plus', contextWindow: 131072, maxTokens: 8192 },
+      { id: 'qwen-turbo', name: 'Qwen Turbo', contextWindow: 131072, maxTokens: 8192 }
     ];
 
     if (variant === 'cn') {
@@ -18,9 +19,9 @@ export class QwenWebProvider {
       };
     } else {
       this.authConfig = {
-        url: 'https://qwenlm.ai',
-        cookieDomains: ['qwenlm.ai', '.qwenlm.ai'],
-        bearerPattern: { urlContains: 'qwenlm.ai' },
+        url: 'https://chat.qwen.ai',
+        cookieDomains: ['chat.qwen.ai', '.qwen.ai', '.qwenlm.ai'],
+        bearerPattern: { urlContains: 'qwen.ai' },
         cookieNames: ['session', 'token']
       };
     }
@@ -28,24 +29,35 @@ export class QwenWebProvider {
 
   async chat(credentials, params) {
     const { cookie, bearer, userAgent } = credentials;
+    const model = params.model || 'qwen3.7-max';
+
     const headers = {
       'Content-Type': 'application/json',
-      'User-Agent': userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      'Cookie': cookie
+      'User-Agent': userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+      'Cookie': cookie,
+      'Accept': 'text/event-stream'
     };
     if (bearer) {
       headers['Authorization'] = `Bearer ${bearer}`;
     }
 
-    const baseUrl = this.variant === 'cn'
-      ? 'https://tongyi.aliyun.com/api/qianwen/chat'
-      : 'https://qwenlm.ai/api/chat';
+    let baseUrl;
+    if (this.variant === 'cn') {
+      baseUrl = 'https://tongyi.aliyun.com/api/qianwen/chat';
+    } else {
+      baseUrl = 'https://chat.qwen.ai/api/chat/completions';
+    }
 
     const body = {
-      model: params.model || 'qwen-plus',
+      model: model,
       messages: this.convertMessages(params.messages),
       stream: params.stream !== false
     };
+
+    if (model === 'qwen3.7-max') {
+      body.thinking = { type: 'enabled' };
+      body.reasoning_effort = 'high';
+    }
 
     const response = await fetch(baseUrl, {
       method: 'POST',

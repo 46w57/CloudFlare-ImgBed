@@ -84,18 +84,53 @@ export class StreamHandler {
 
   static normalizeDeepSeek(chunk) {
     if (chunk.choices?.[0]?.delta) {
-      return {
+      const delta = chunk.choices[0].delta;
+      const content = delta.content || '';
+      const reasoningContent = delta.reasoning_content || '';
+
+      const result = {
         id: chunk.id || 'chatcmpl-zero',
         object: 'chat.completion.chunk',
         created: chunk.created || Math.floor(Date.now() / 1000),
         model: chunk.model || 'deepseek-web',
         choices: [{
           index: 0,
-          delta: { content: chunk.choices[0].delta.content || '' },
+          delta: { content },
           finish_reason: chunk.choices[0].finish_reason || null
         }]
       };
+
+      if (reasoningContent) {
+        result.choices[0].delta.reasoning_content = reasoningContent;
+      }
+
+      return result;
     }
+
+    if (chunk.choices?.[0]?.message) {
+      const msg = chunk.choices[0].message;
+      const content = msg.content || '';
+      const reasoningContent = msg.reasoning_content || '';
+
+      const result = {
+        id: chunk.id || 'chatcmpl-zero',
+        object: 'chat.completion.chunk',
+        created: chunk.created || Math.floor(Date.now() / 1000),
+        model: chunk.model || 'deepseek-web',
+        choices: [{
+          index: 0,
+          delta: { content },
+          finish_reason: chunk.choices[0].finish_reason || null
+        }]
+      };
+
+      if (reasoningContent) {
+        result.choices[0].delta.reasoning_content = reasoningContent;
+      }
+
+      return result;
+    }
+
     return chunk;
   }
 
@@ -148,17 +183,27 @@ export class StreamHandler {
 
   static normalizeQwen(chunk) {
     if (chunk.choices?.[0]?.delta) {
-      return {
+      const delta = chunk.choices[0].delta;
+      const content = delta.content || '';
+      const reasoningContent = delta.reasoning_content || '';
+
+      const result = {
         id: chunk.id || 'chatcmpl-qwen',
         object: 'chat.completion.chunk',
         created: chunk.created || Math.floor(Date.now() / 1000),
         model: 'qwen-web',
         choices: [{
           index: 0,
-          delta: { content: chunk.choices[0].delta.content || '' },
+          delta: { content },
           finish_reason: chunk.choices[0].finish_reason || null
         }]
       };
+
+      if (reasoningContent) {
+        result.choices[0].delta.reasoning_content = reasoningContent;
+      }
+
+      return result;
     }
     return chunk;
   }

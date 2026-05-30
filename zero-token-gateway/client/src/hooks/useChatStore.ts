@@ -64,7 +64,7 @@ interface ChatState {
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
-  currentModel: 'deepseek-web/deepseek-chat',
+  currentModel: 'deepseek-web/deepseek-v4-pro',
   models: [],
   providers: [],
   isLoading: false,

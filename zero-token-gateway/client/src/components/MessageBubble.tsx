@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Bot, User, Wrench } from 'lucide-react'
+import { Bot, User, Wrench, ChevronDown, ChevronRight, Brain } from 'lucide-react'
 
 interface Message {
   id: string
@@ -15,9 +16,24 @@ interface Props {
   isStreaming?: boolean
 }
 
+function extractThinkingAndContent(text: string): { thinking: string | null; content: string } {
+  const thinkMatch = text.match(/^💭([\s\S]*?)<\/think>/)
+  if (thinkMatch) {
+    return {
+      thinking: thinkMatch[1].trim(),
+      content: text.slice(thinkMatch[0].length).trim()
+    }
+  }
+  return { thinking: null, content: text }
+}
+
 export default function MessageBubble({ message, isStreaming }: Props) {
   const isUser = message.role === 'user'
   const isTool = message.role === 'tool'
+  const [showThinking, setShowThinking] = useState(false)
+
+  const { thinking, content } = extractThinkingAndContent(message.content)
+  const hasThinking = !!thinking
 
   return (
     <div className={`flex gap-3 animate-fade-in ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -39,8 +55,34 @@ export default function MessageBubble({ message, isStreaming }: Props) {
 
       <div className={`max-w-[75%] ${isUser ? 'text-right' : ''}`}>
         {!isUser && message.model && (
-          <div className="text-[11px] font-mono text-text-muted mb-1">
-            {message.model}
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[11px] font-mono text-text-muted">
+              {message.model}
+            </span>
+            {hasThinking && (
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/10 text-accent">
+                THINKING
+              </span>
+            )}
+          </div>
+        )}
+
+        {hasThinking && (
+          <button
+            onClick={() => setShowThinking(!showThinking)}
+            className="flex items-center gap-1.5 mb-2 px-2 py-1 rounded-lg bg-bg-tertiary/50 text-text-muted text-xs font-mono hover:text-accent hover:bg-accent/5 transition-all"
+          >
+            <Brain className="w-3 h-3" />
+            {showThinking ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            {showThinking ? 'Hide thinking' : 'Show thinking'}
+          </button>
+        )}
+
+        {showThinking && thinking && (
+          <div className="mb-2 p-3 rounded-xl bg-accent/5 border border-accent/10 text-xs text-text-secondary font-mono max-h-60 overflow-y-auto">
+            <div className="markdown-body text-xs">
+              <ReactMarkdown>{thinking}</ReactMarkdown>
+            </div>
           </div>
         )}
 
@@ -54,8 +96,8 @@ export default function MessageBubble({ message, isStreaming }: Props) {
           {isUser ? (
             <p className="text-sm whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <div className={`markdown-body ${isStreaming ? 'typing-cursor' : ''}`}>
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+            <div className={`markdown-body ${isStreaming && !hasThinking ? 'typing-cursor' : ''}`}>
+              <ReactMarkdown>{content || message.content}</ReactMarkdown>
             </div>
           )}
         </div>
