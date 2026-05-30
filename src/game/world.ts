@@ -7,7 +7,8 @@ export const TILE_SIZE = 32;
 export const O = 1;
 
 const TILE_KEYS: Record<number, string[]> = {
-  [Region.Forest]: ['grass1','grass2','grass3','dirtPath','treeTrunkB','treeTrunkT','deepWater','rock','dirtPath','bushL','grass3'],
+  [Region.Forest]: ['grass1','grass2','grass3','grass4','grass5','grass6',
+    'grass7','grass8','grass9','grass10','treeTrunkB','treeTrunkT','deepWater','rock','bushL'],
   [Region.Desert]: ['sand1','sand2','dirtPath','sand1','cactus1','deadBush','deepWater','sand1','dirtPath','sand2'],
   [Region.Snow]: ['snow1','snow2','ice1','water1','pineL','rock','icicleHang','snow1','snow2','rock'],
   [Region.Ruins]: ['void1','void2','void1','void1','brokenStone1','brokenStone2','rubblePile','ancientDoorway','void2','crystalGlow'],
@@ -305,7 +306,7 @@ export function generateForestMap(W: number, H: number, TS: number): MapData {
   const ground = layers[0].data;
   const deco = layers[1].data;
   const collisions = createEmptyCollisions(W, H);
-  const grassTiles = [1, 2, 3];
+  const grassTiles = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -360,10 +361,10 @@ export function generateForestMap(W: number, H: number, TS: number): MapData {
 
   for (const [tx, ty] of treePositions) {
     if (ty > 0 && ty < H && tx >= 0 && tx < W) {
-      deco[ty][tx] = 5;
+      deco[ty][tx] = 10;  // treeTrunkB (index 10 in updated TILE_KEYS)
       collisions[ty][tx] = true;
       if (ty - 1 >= 0) {
-        deco[ty - 1][tx] = 6;
+        deco[ty - 1][tx] = 11;  // treeTrunkT (index 11 in updated TILE_KEYS)
         collisions[ty - 1][tx] = true;
       }
     }

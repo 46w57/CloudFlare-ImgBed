@@ -267,45 +267,36 @@ export const TileRegistry: Record<string, () => SpriteFrame> = {
   grass1: (): SpriteFrame => {
     const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
 
-    // Base fill: mid-tone olive green
     c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
 
-    // Sparse darker specks (shadow patches under grass) -- just single pixels
-    const darkSpots: [number, number][] = [
-      [3,4],[14,2],[25,5],[8,12],[19,10],[5,20],[28,17],[12,24],
-      [22,22],[7,28],[17,27],[29,8],[2,15],[26,13],[10,18],
-    ];
-    darkSpots.forEach(([x,y]) => c.set(x, y, 3));
+    // Dark shadow specks -- RANDOM positions per call (breaks grid pattern)
+    for (let i = 0; i < 14; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 3);
+    }
 
-    // Even sparser lighter specks (sunlight hitting grass tips)
-    const lightSpots: [number, number][] = [
-      [6,3],[21,4],[11,9],[27,14],[4,18],[16,23],[9,27],[24,26],
-    ];
-    lightSpots.forEach(([x,y]) => c.set(x, y, 5));
+    // Light highlight specks -- random
+    for (let i = 0; i < 8; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 5);
+    }
 
-    // Grass "tufts" -- each is 2-3 adjacent pixels forming a tiny blade shape
-    // These are VERTICAL or near-vertical, very short (2px tall max)
-    // Format: [baseX, baseY] then 1 pixel above it
-    const tufts: [number, number][] = [
-      [5,6],[18,4],[28,7],[8,14],[22,11],[3,19],[15,22],[26,18],
-      [11,26],[20,25],[6,29],[24,29],
-    ];
-    tufts.forEach(([x, y]) => {
-      c.set(x, y, 2); // blade body (slightly darker than base)
-      if (y > 0) c.set(x, y - 1, 5); // tip catches light
-    });
+    // Grass tufts -- random positions, avoid edges
+    for (let i = 0; i < 11; i++) {
+      const bx = 2 + Math.floor(Math.random() * 28);
+      const by = 3 + Math.floor(Math.random() * 26);
+      c.set(bx, by, 2);
+      if (by > 1) c.set(bx, by - 1, 5);
+    }
 
-    // Occasional tiny accent (dead grass / clover hint) -- VERY rare, 2-3 per tile
-    c.set(13, 7, 6);
-    c.set(30, 21, 6);
+    // Rare accent (dead grass / clover)
+    if (Math.random() < 0.5) c.set(Math.floor(Math.random()*28)+2, Math.floor(Math.random()*26)+3, 6);
+    if (Math.random() < 0.25) c.set(Math.floor(Math.random()*28)+2, Math.floor(Math.random()*26)+3, 6);
 
-    // Bottom edge slightly darker (ambient occlusion)
+    // Bottom ambient occlusion
     for (let x = 0; x < TILE_SIZE; x++) {
       if (Math.random() < 0.35) c.set(x, 31, 3);
       if (Math.random() < 0.15) c.set(x, 30, 3);
     }
 
-    // Minimal noise (2% probability) for organic feel
     c.addNoise(0.02, [3, 4, 5]);
 
     c.outline(O);
@@ -319,31 +310,28 @@ export const TileRegistry: Record<string, () => SpriteFrame> = {
     c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
 
     // Different dark spot positions from grass1
-    const darkSpots: [number, number][] = [
-      [7,3],[22,2],[4,7],[16,11],[27,14],[10,19],[2,23],[19,25],
-      [13,28],[26,8],[6,16],[23,17],[8,26],[29,24],[14,15],
-    ];
-    darkSpots.forEach(([x,y]) => c.set(x, y, 3));
+    // Dark spots -- random positions (different density from grass1)
+    for (let i = 0; i < 12; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 3);
+    }
 
-    const lightSpots: [number, number][] = [
-      [3,2],[17,5],[26,8],[6,13],[21,18],[4,24],[14,27],[28,22],
-    ];
-    lightSpots.forEach(([x,y]) => c.set(x, y, 5));
+    // Light specks -- random
+    for (let i = 0; i < 9; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 5);
+    }
 
-    // Tufts at different positions
-    const tufts: [number, number][] = [
-      [9,5],[25,3],[4,9],[14,13],[29,12],[7,20],[20,22],[3,25],
-      [12,27],[23,26],[17,29],[8,30],
-    ];
-    tufts.forEach(([x, y]) => {
-      c.set(x, y, 2);
-      if (y > 0) c.set(x, y - 1, 5);
-    });
+    // Tufts -- random, slightly more than grass1 (lusher variant)
+    for (let i = 0; i < 13; i++) {
+      const bx = 2 + Math.floor(Math.random() * 28);
+      const by = 3 + Math.floor(Math.random() * 26);
+      c.set(bx, by, 2);
+      if (by > 1) c.set(bx, by - 1, 5);
+    }
 
-    // Slightly more accent spots (lusher feel)
-    c.set(5, 10, 6);
-    c.set(28, 16, 6);
-    c.set(11, 21, 6);
+    // More accent spots (lusher feel) -- random
+    for (let i = 0; i < 3; i++) {
+      c.set(Math.floor(Math.random()*28)+2, Math.floor(Math.random()*26)+3, 6);
+    }
 
     for (let x = 0; x < TILE_SIZE; x++) {
       if (Math.random() < 0.3) c.set(x, 31, 3);
@@ -375,26 +363,29 @@ export const TileRegistry: Record<string, () => SpriteFrame> = {
       }
     }
 
-    // Fewer tufts overall (trampled grass has less growth)
-    const tufts: [number, number][] = [
-      [4,4],[22,3],[7,11],[26,9],[3,17],[15,20],[6,26],[24,25],
-    ];
-    tufts.forEach(([x, y]) => {
-      if (y < 12 || x < 17) { // avoid placing tufts on bare patch
-        c.set(x, y, 2);
-        if (y > 0) c.set(x, y - 1, 5);
+    // Fewer tufts overall (trampled grass has less growth) -- avoid bare patch
+    for (let i = 0; i < 7; i++) {
+      const bx = 1 + Math.floor(Math.random() * 15);
+      const by = 3 + Math.floor(Math.random() * 25);
+      if (by < 12 || bx < 16) {
+        c.set(bx, by, 2);
+        if (by > 0) c.set(bx, by - 1, 5);
       }
-    });
+    }
 
-    // Very few light spots
-    const lightSpots: [number, number][] = [
-      [8,3],[20,6],[2,13],[12,22],[28,20],
-    ];
-    lightSpots.forEach(([x,y]) => c.set(x, y, 5));
+    // Very few light spots -- random, avoid bare patch
+    for (let i = 0; i < 5; i++) {
+      const lx = Math.floor(Math.random() * 17);
+      const ly = Math.floor(Math.random() * TILE_SIZE);
+      c.set(lx, ly, 5);
+    }
 
-    // Some dark spots around bare patch edge
-    c.set(17, 15, 3); c.set(17, 18, 3); c.set(16, 20, 3);
-    c.set(29, 14, 3); c.set(28, 23, 3);
+    // Some dark spots around bare patch edge -- random
+    for (let i = 0; i < 5; i++) {
+      const edgeX = 16 + Math.floor(Math.random() * 3);
+      const edgeY = 12 + Math.floor(Math.random() * 13);
+      c.set(edgeX, edgeY, 3);
+    }
 
     for (let x = 0; x < TILE_SIZE; x++) {
       if (Math.random() < 0.35) c.set(x, 31, 3);
@@ -402,6 +393,149 @@ export const TileRegistry: Record<string, () => SpriteFrame> = {
 
     c.addNoise(0.015, [3, 4, 5]);
 
+    c.outline(O);
+    return c.frame();
+  },
+
+  // ==================== MORE GRASS VARIANTS (grass4-10) ====================
+  // Each uses a DIFFERENT visual style so adjacent tiles never look identical
+
+  grass4: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Dither-based subtle variation (no random spots, just smooth dither)
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
+    c.dither(0, 0, TILE_SIZE, TILE_SIZE, 4, 5);
+    // Occasional slightly darker dither patches
+    for (let y = 0; y < TILE_SIZE; y += 5) {
+      for (let x = 0; x < TILE_SIZE; x += 7) {
+        if ((x + y) % 3 === 0) c.set(x, y, 3);
+      }
+    }
+    // Very sparse tiny highlights
+    for (let i = 0; i < 5; i++) {
+      c.set(Math.floor(Math.random()*30)+1, Math.floor(Math.random()*28)+2, 6);
+    }
+    c.outline(O);
+    return c.frame();
+  },
+
+  grass5: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Darker/shadier variant -- base is darker green
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 3);
+    // Sparse mid-tone areas (light filtering through canopy)
+    for (let i = 0; i < 18; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 4);
+    }
+    // Very few bright spots
+    for (let i = 0; i < 4; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 6);
+    }
+    // Bottom darker
+    for (let x = 0; x < TILE_SIZE; x++) {
+      if (Math.random() < 0.4) c.set(x, 31, 2);
+    }
+    c.outline(O);
+    return c.frame();
+  },
+
+  grass6: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Lighter/sunlit variant
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 5);
+    // Shadow patches underneath (simulating taller grass casting shadows)
+    for (let i = 0; i < 16; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 3);
+    }
+    // More light specks
+    for (let i = 0; i < 12; i++) {
+      c.set(Math.floor(Math.random() * TILE_SIZE), Math.floor(Math.random() * TILE_SIZE), 7);
+    }
+    // Flower accents (more than other variants)
+    for (let i = 0; i < 4; i++) {
+      c.set(Math.floor(Math.random()*28)+2, Math.floor(Math.random()*26)+3, 6);
+    }
+    c.outline(O);
+    return c.frame();
+  },
+
+  grass7: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Nearly flat/minimal detail variant -- mostly uniform with tiny variation
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
+    // Ultra-sparse noise only
+    c.addNoise(0.04, [3, 5]);
+    c.addNoise(0.02, [6]);
+    // Just 3-4 visible "features"
+    c.set(8, 8, 3); c.set(24, 14, 5); c.set(12, 24, 3); c.set(22, 26, 5);
+    c.outline(O);
+    return c.frame();
+  },
+
+  grass8: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Cluster-based: small groups of 2-4 pixels instead of isolated dots
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
+    // Create small clusters
+    for (let i = 0; i < 8; i++) {
+      const cx = 3 + Math.floor(Math.random() * 26);
+      const cy = 3 + Math.floor(Math.random() * 26);
+      c.set(cx, cy, 3);
+      if (Math.random() < 0.7) c.set(cx + 1, cy, 3);
+      if (Math.random() < 0.5) c.set(cx, cy + 1, 3);
+      if (Math.random() < 0.3) c.set(cx + 1, cy + 1, 2);
+    }
+    // A few light clusters
+    for (let i = 0; i < 4; i++) {
+      const cx = 3 + Math.floor(Math.random() * 26);
+      const cy = 3 + Math.floor(Math.random() * 26);
+      c.set(cx, cy, 6);
+      if (Math.random() < 0.6) c.set(cx + 1, cy, 5);
+    }
+    c.outline(O);
+    return c.frame();
+  },
+
+  grass9: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Edge-focused: more detail at tile edges, cleaner center
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
+    // Edge noise (top/bottom/left/right borders have more variation)
+    for (let x = 0; x < TILE_SIZE; x++) {
+      if (Math.random() < 0.25) c.set(x, 0, 3);
+      if (Math.random() < 0.25) c.set(x, 31, 3);
+    }
+    for (let y = 0; y < TILE_SIZE; y++) {
+      if (Math.random() < 0.15) c.set(0, y, 3);
+      if (Math.random() < 0.15) c.set(31, y, 3);
+    }
+    // Center area is mostly clean with just a few specks
+    for (let i = 0; i < 6; i++) {
+      c.set(5 + Math.floor(Math.random() * 22), 5 + Math.floor(Math.random() * 22), Math.random() < 0.5 ? 5 : 3);
+    }
+    c.outline(O);
+    return c.frame();
+  },
+
+  grass10: (): SpriteFrame => {
+    const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
+    // Diagonal streak variant (subtle grass blade direction hint)
+    c.rect(0, 0, TILE_SIZE, TILE_SIZE, 4);
+    // Short diagonal dashes (2-3 pixels long), NOT full lines
+    for (let i = 0; i < 12; i++) {
+      const sx = 2 + Math.floor(Math.random() * 26);
+      const sy = 2 + Math.floor(Math.random() * 26);
+      c.set(sx, sy, 3);
+      if (sx < 30 && sy < 30 && Math.random() < 0.7) c.set(sx + 1, sy + 1, 3);
+      if (sx < 29 && sy < 29 && Math.random() < 0.3) c.set(sx + 2, sy + 2, 2);
+    }
+    // Counter-direction light dashes
+    for (let i = 0; i < 5; i++) {
+      const sx = 2 + Math.floor(Math.random() * 26);
+      const sy = 2 + Math.floor(Math.random() * 26);
+      c.set(sx, sy, 6);
+      if (sx > 1 && sy > 1 && Math.random() < 0.6) c.set(sx - 1, sy - 1, 5);
+    }
     c.outline(O);
     return c.frame();
   },
@@ -507,68 +641,85 @@ export const TileRegistry: Record<string, () => SpriteFrame> = {
   treeTrunkB: (): SpriteFrame => {
     const c = new PixelCanvas(TILE_SIZE, TILE_SIZE);
 
-    // Full-height exposed trunk (no canopy above)
-    const trunkTop = 3;
-    const trunkBottom = 31;
+    // === COMPLETE TREE WITH CANOPY (variant B - rounder/taller shape) ===
+    // This MUST show green canopy. No more bare trunks.
+    const cx = 16, cy = 10;
+    const isInCanopy = (x: number, y: number): boolean => {
+      const dx = x - cx, dy = y - cy;
+      // Taller main body
+      if (dx*dx/(11*11) + dy*dy/(12*12) <= 1) return true;
+      // Rounder top
+      if (dx*dx/(9*9) + (dy+7)*(dy+7)/(6*6) <= 1) return true;
+      // Side lobes
+      if ((dx+7)*(dx+7)/(6*6) + (dy-2)*(dy-2)/(5*5) <= 1) return true;
+      if ((dx-7)*(dx-7)/(6*6) + (dy-2)*(dy-2)/(5*5) <= 1) return true;
+      // Lower bulge
+      if (dx*dx/(8*8) + (dy-6)*(dy-6)/(4*4) <= 1) return true;
+      return false;
+    };
 
-    for (let y = trunkTop; y <= trunkBottom; y++) {
-      const progress = (y - trunkTop) / (trunkBottom - trunkTop);
-      const hw = 3 + progress * 3; // narrow at top (3), wide at bottom (6)
+    // Fill base green
+    for (let y = 0; y < 22; y++) {
+      for (let x = 0; x < TILE_SIZE; x++) {
+        if (isInCanopy(x, y)) c.set(x, y, 4);
+      }
+    }
+
+    // Shading: upper-left light, lower-right dark
+    for (let y = 0; y < 22; y++) {
+      for (let x = 0; x < TILE_SIZE; x++) {
+        if (!isInCanopy(x, y)) continue;
+        const dx = x - cx, dy = y - cy;
+        const shade = dx * (-0.14) + dy * 0.09;
+        if (shade > 2.8) c.set(x, y, 7);
+        else if (shade > 1.3) c.set(x, y, 6);
+        else if (shade > 0) c.set(x, y, 5);
+        else if (shade < -2.3) c.set(x, y, 2);
+        else if (shade < -1.0) c.set(x, y, 3);
+      }
+    }
+
+    // Leaf texture noise
+    for (let i = 0; i < 20; i++) {
+      const rx = 6 + Math.floor(Math.random() * 20);
+      const ry = 1 + Math.floor(Math.random() * 17);
+      if (isInCanopy(rx, ry) && c.get(rx, ry) >= 4 && c.get(rx, ry) <= 6) {
+        c.set(rx, ry, c.get(rx, ry) - 1);
+      }
+    }
+
+    // === TRUNK (bottom portion, y=18 to 31) ===
+    for (let y = 19; y <= 31; y++) {
+      const progress = (y - 19) / 12;
+      const hw = 2.5 + progress * 3;
       for (let x = 16 - Math.floor(hw); x <= 16 + Math.ceil(hw); x++) {
         c.set(x, y, 11);
       }
     }
 
-    // Left highlight
-    for (let y = trunkTop + 1; y <= trunkBottom - 2; y++) {
-      const progress = (y - trunkTop) / (trunkBottom - trunkTop);
-      const hw = 3 + progress * 3;
+    // Trunk shading
+    for (let y = 20; y <= 30; y++) {
+      const progress = (y - 19) / 12;
+      const hw = 2.5 + progress * 3;
       c.set(16 - Math.floor(hw), y, 13);
-      if (hw > 2.5) c.set(16 - Math.floor(hw) + 1, y, 14);
-      if (hw > 4) c.set(16 - Math.floor(hw) + 2, y, 13);
-    }
-
-    // Right shadow
-    for (let y = trunkTop + 1; y <= trunkBottom - 2; y++) {
-      const progress = (y - trunkTop) / (trunkBottom - trunkTop);
-      const hw = 3 + progress * 3;
+      if (hw > 2) c.set(16 - Math.floor(hw) + 1, y, 14);
       c.set(16 + Math.ceil(hw), y, 9);
-      if (hw > 2.5) c.set(16 + Math.ceil(hw) - 1, y, 10);
-      if (hw > 4) c.set(16 + Math.ceil(hw) - 2, y, 9);
+      if (hw > 2) c.set(16 + Math.ceil(hw) - 1, y, 10);
     }
 
-    // More bark grooves (full trunk needs detail)
-    c.line(12, 5, 12, 14, 9);
-    c.line(13, 7, 13, 18, 9);
-    c.line(14, 10, 14, 24, 10);
-    c.line(15, 6, 15, 15, 9);
-    c.line(17, 7, 17, 16, 9);
-    c.line(18, 9, 18, 22, 9);
-    c.line(19, 12, 19, 26, 10);
-    c.line(20, 14, 20, 28, 9);
+    // Bark detail
+    c.line(14, 21, 14, 28, 9);
+    c.line(17, 23, 17, 29, 9);
+    c.line(19, 25, 19, 30, 10);
 
-    // Knots
-    c.set(13, 11, 9); c.set(14, 11, 9); c.set(14, 12, 13);
-    c.set(13, 12, 13); c.set(13, 13, 9); c.set(14, 13, 9);
-    c.set(19, 18, 9); c.set(20, 18, 9); c.set(20, 19, 13);
-    c.set(19, 19, 13); c.set(19, 20, 9); c.set(20, 20, 9);
-    c.set(14, 24, 9); c.set(15, 24, 9); c.set(15, 25, 13);
-    c.set(14, 25, 13); c.set(14, 26, 9);
+    // Root flare
+    c.set(11, 29, 10); c.set(12, 29, 11); c.set(11, 30, 9);
+    c.set(21, 29, 10); c.set(22, 29, 11); c.set(22, 30, 9);
 
-    // Pronounced root flare
-    c.set(10, 29, 10); c.set(11, 29, 11); c.set(9, 30, 9);
-    c.set(8, 30, 10); c.set(9, 31, 8);
-    c.set(22, 29, 10); c.set(23, 29, 11); c.set(24, 30, 10);
-    c.set(25, 30, 9); c.set(24, 31, 8);
+    // Canopy shadow on trunk
+    c.set(13, 19, 8); c.set(14, 19, 8); c.set(15, 19, 9);
+    c.set(16, 19, 9); c.set(17, 19, 9); c.set(18, 19, 8); c.set(19, 19, 8);
 
-    // Ground contact shadow
-    for (let x = 10; x <= 23; x++) c.set(x, 31, 8);
-
-    // Top taper highlight
-    c.set(14, 3, 14); c.set(15, 3, 13); c.set(16, 3, 14);
-    c.set(17, 3, 13); c.set(18, 3, 12);
-
-    c.addNoise(0.02, [10, 11, 12]);
     c.outline(O);
     return c.frame();
   },
@@ -1481,6 +1632,8 @@ export const SpriteRegistry: Record<string, () => SpriteFrame> = {
 
 export const TilePalettes: Record<string, string[]> = {
   grass1: SP, grass2: SP, grass3: SP,
+  grass4: SP, grass5: SP, grass6: SP,
+  grass7: SP, grass8: SP, grass9: SP, grass10: SP,
   treeTrunkT: TREE_P, treeTrunkB: TREE_P,
   dirtPath: TP,
   rock: TP,
