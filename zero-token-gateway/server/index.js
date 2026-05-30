@@ -3,7 +3,6 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { initCDP } from './cdp/chrome.js';
 import { CredentialStore } from './services/credential-store.js';
 import { ProviderRegistry } from './providers/index.js';
 import { registerRoutes } from './routes/index.js';
