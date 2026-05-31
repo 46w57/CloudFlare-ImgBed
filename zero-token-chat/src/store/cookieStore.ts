@@ -98,6 +98,10 @@ export const useCookieStore = create<CookieState>()((set, get) => ({
         return;
       }
       set((s) => ({ taskId: { ...s.taskId, [platform]: taskId } }));
+      const loginUrl = data.login_url || data.loginUrl;
+      if (loginUrl) {
+        window.open(loginUrl, "_blank", "noopener,noreferrer");
+      }
       get().pollStatus(platform, taskId);
     } catch {
       set((s) => ({

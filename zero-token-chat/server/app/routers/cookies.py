@@ -36,8 +36,16 @@ async def start_login(request: StartLoginRequest):
     if request.platform not in ("deepseek", "qwen"):
         raise HTTPException(status_code=400, detail="不支持的平台，仅支持 deepseek 和 qwen")
 
+    from app.config import DEEPSEEK_BASE_URL, QWEN_BASE_URL
+    login_url = DEEPSEEK_BASE_URL if request.platform == "deepseek" else QWEN_BASE_URL
+
     task_id = await start_login_poll(request.platform)
-    return {"task_id": task_id, "status": "polling", "message": "已打开浏览器，请在浏览器中登录"}
+    return {
+        "task_id": task_id,
+        "status": "polling",
+        "login_url": login_url,
+        "message": "请在浏览器中完成登录",
+    }
 
 
 @router.get("/poll/{task_id}")
