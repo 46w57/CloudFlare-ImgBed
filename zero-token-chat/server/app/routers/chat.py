@@ -64,6 +64,16 @@ def _extract_chat_history(request: ChatRequest) -> Optional[list]:
 
 
 async def _stream_chat(request: ChatRequest):
+    try:
+        async for chunk in _stream_chat_inner(request):
+            yield chunk
+    except Exception as e:
+        yield f"data: {json.dumps({'type': 'error', 'content': str(e)}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'content': ''}, ensure_ascii=False)}\n\n"
+        yield "data: [DONE]\n\n"
+
+
+async def _stream_chat_inner(request: ChatRequest):
     platform = _get_platform(request.model, request.platform)
     user_message = _extract_message(request)
     chat_history = _extract_chat_history(request)
@@ -129,8 +139,7 @@ async def _stream_chat(request: ChatRequest):
                     tool_calls_found.append({"raw": event_content})
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
             elif event_type == "done":
-                if not has_tool_call:
-                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                pass
             else:
                 if event_type == "content":
                     current_content += event_content
@@ -164,25 +173,27 @@ async def _stream_chat(request: ChatRequest):
 
             accumulated_content += f"\n\n工具 {tool_name} 的执行结果:\n{tool_result}"
 
-        text_tool_calls = parse_tool_calls_from_text(current_content)
-        if text_tool_calls:
-            for tc in text_tool_calls:
-                tc_name = tc.get("name", "")
-                tc_args = tc.get("arguments", {})
-                if isinstance(tc_args, str):
-                    try:
-                        tc_args = json.loads(tc_args)
-                    except json.JSONDecodeError:
-                        tc_args = {"raw": tc_args}
+        if not tool_calls_found:
+            text_tool_calls = parse_tool_calls_from_text(current_content)
+            if text_tool_calls:
+                has_tool_call = True
+                for tc in text_tool_calls:
+                    tc_name = tc.get("name", "")
+                    tc_args = tc.get("arguments", {})
+                    if isinstance(tc_args, str):
+                        try:
+                            tc_args = json.loads(tc_args)
+                        except json.JSONDecodeError:
+                            tc_args = {"raw": tc_args}
 
-                tc_result = await execute_tool(tc_name, tc_args)
-                result_event = {
-                    "type": "tool_result",
-                    "content": tc_result,
-                    "tool_name": tc_name,
-                }
-                yield f"data: {json.dumps(result_event, ensure_ascii=False)}\n\n"
-                accumulated_content += f"\n\n工具 {tc_name} 的执行结果:\n{tc_result}"
+                    tc_result = await execute_tool(tc_name, tc_args)
+                    result_event = {
+                        "type": "tool_result",
+                        "content": tc_result,
+                        "tool_name": tc_name,
+                    }
+                    yield f"data: {json.dumps(result_event, ensure_ascii=False)}\n\n"
+                    accumulated_content += f"\n\n工具 {tc_name} 的执行结果:\n{tc_result}"
 
     yield f"data: {json.dumps({'type': 'done', 'content': ''}, ensure_ascii=False)}\n\n"
     yield "data: [DONE]\n\n"

@@ -13,6 +13,11 @@ from app.services.credential_store import save_credential
 _poll_tasks: dict = {}
 
 
+async def _cleanup_task(task_id: str, delay: int = 60) -> None:
+    await asyncio.sleep(delay)
+    _poll_tasks.pop(task_id, None)
+
+
 def read_browser_cookies(domain: str) -> Optional[str]:
     try:
         import rookiepy
@@ -201,10 +206,12 @@ async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
                 "cookies": cookies or "",
                 "source": "login_poll",
             }
+            _cleanup_task(task_id, delay=60)
             return
 
     _poll_tasks[task_id]["status"] = "timeout"
     _poll_tasks[task_id]["result"] = None
+    _cleanup_task(task_id, delay=60)
 
 
 def get_poll_status(task_id: str) -> Optional[dict]:

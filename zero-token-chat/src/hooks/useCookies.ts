@@ -1,9 +1,6 @@
 import { useCallback } from "react";
 import { useCookieStore, type PollingStatus } from "@/store/cookieStore";
-import {
-  autoDetect,
-  getCredentials,
-} from "@/utils/api";
+import { autoDetect } from "@/utils/api";
 
 export function useCookies() {
   const store = useCookieStore();

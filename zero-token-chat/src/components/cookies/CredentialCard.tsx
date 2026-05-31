@@ -6,6 +6,7 @@ import {
   Check,
   Trash2,
   ExternalLink,
+  ScanSearch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CredentialInfo, PollingStatus } from "@/store/cookieStore";
@@ -15,6 +16,7 @@ interface CredentialCardProps {
   credential: CredentialInfo;
   pollingStatus: PollingStatus;
   onStartLogin: () => void;
+  onAutoDetect: () => void;
   onManualImport: (token: string) => void;
   onValidate: () => void;
   onDelete: () => void;
@@ -25,6 +27,7 @@ export default function CredentialCard({
   credential,
   pollingStatus,
   onStartLogin,
+  onAutoDetect,
   onManualImport,
   onValidate,
   onDelete,
@@ -129,6 +132,19 @@ export default function CredentialCard({
           >
             <ExternalLink className="h-3.5 w-3.5" />
             一键登录
+          </button>
+          <button
+            onClick={onAutoDetect}
+            disabled={pollingStatus === "polling"}
+            className={cn(
+              "flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm transition-colors hover:bg-[var(--border)]",
+              pollingStatus === "polling"
+                ? "cursor-not-allowed text-[var(--text-secondary)]/50"
+                : "text-[var(--text-secondary)]"
+            )}
+          >
+            <ScanSearch className="h-3.5 w-3.5" />
+            自动检测
           </button>
           <button
             onClick={() => setShowManualInput(!showManualInput)}

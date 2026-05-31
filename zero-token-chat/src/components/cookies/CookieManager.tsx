@@ -10,6 +10,7 @@ export default function CookieManager() {
     pollingStatus,
     refreshCredentials,
     handleStartLogin,
+    handleAutoDetect,
     handleManualImport,
     handleValidate,
     handleDelete,
@@ -43,6 +44,7 @@ export default function CookieManager() {
           credential={credentials.deepseek}
           pollingStatus={pollingStatus.deepseek}
           onStartLogin={() => handleStartLogin("deepseek")}
+          onAutoDetect={() => handleAutoDetect("deepseek")}
           onManualImport={(token) => handleManualImport("deepseek", token)}
           onValidate={() => handleValidate("deepseek")}
           onDelete={() => handleDelete("deepseek")}
@@ -52,6 +54,7 @@ export default function CookieManager() {
           credential={credentials.qwen}
           pollingStatus={pollingStatus.qwen}
           onStartLogin={() => handleStartLogin("qwen")}
+          onAutoDetect={() => handleAutoDetect("qwen")}
           onManualImport={(token) => handleManualImport("qwen", token)}
           onValidate={() => handleValidate("qwen")}
           onDelete={() => handleDelete("qwen")}
