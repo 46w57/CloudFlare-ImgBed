@@ -1,14 +1,19 @@
 import asyncio
 import json
 import os
+import shutil
 import struct
+import tempfile
 import uuid
 import webbrowser
+import logging
 from pathlib import Path
 from typing import Optional
 
 from app.config import DEEPSEEK_BASE_URL, QWEN_BASE_URL, POLL_INTERVAL, POLL_MAX_DURATION
 from app.services.credential_store import save_credential
+
+logger = logging.getLogger(__name__)
 
 _poll_tasks: dict = {}
 
@@ -45,12 +50,15 @@ def read_browser_cookies(domain: str) -> Optional[str]:
                         if name and value:
                             parts.append(f"{name}={value}")
                     return "; ".join(parts) if parts else None
-            except Exception:
+            except Exception as e:
+                logger.debug("rookiepy %s failed: %s", browser_func.__name__, e)
                 continue
         return None
     except ImportError:
+        logger.debug("rookiepy not installed")
         return None
-    except Exception:
+    except Exception as e:
+        logger.debug("read_browser_cookies error: %s", e)
         return None
 
 
@@ -58,11 +66,18 @@ def _find_leveldb_dirs(profile_path: Path):
     leveldb_dirs = []
     if not profile_path.exists():
         return leveldb_dirs
-    for item in profile_path.iterdir():
+    try:
+        items = list(profile_path.iterdir())
+    except PermissionError:
+        return leveldb_dirs
+    for item in items:
         if item.is_dir():
-            for sub in item.iterdir():
-                if sub.is_dir() and "leveldb" in sub.name.lower():
-                    leveldb_dirs.append(sub)
+            try:
+                for sub in item.iterdir():
+                    if sub.is_dir() and "leveldb" in sub.name.lower():
+                        leveldb_dirs.append(sub)
+            except (PermissionError, OSError):
+                continue
     return leveldb_dirs
 
 
@@ -87,8 +102,10 @@ def _parse_leveldb_log(file_path: Path) -> list[str]:
             except Exception:
                 pass
             offset += 12 + length
-    except Exception:
-        pass
+    except (PermissionError, OSError) as e:
+        logger.debug("Cannot read leveldb file %s: %s", file_path, e)
+    except Exception as e:
+        logger.debug("Parse leveldb error: %s", e)
     return results
 
 
@@ -129,9 +146,20 @@ def read_local_storage_token(domain: str) -> Optional[str]:
     for ldb_path in leveldb_paths:
         if not ldb_path.exists():
             continue
-        for f in ldb_path.iterdir():
-            if f.suffix in (".log", ".ldb"):
-                entries = _parse_leveldb_log(f)
+        try:
+            files_to_read = [f for f in ldb_path.iterdir() if f.suffix in (".log", ".ldb")]
+        except PermissionError:
+            logger.debug("Permission denied listing %s", ldb_path)
+            continue
+
+        for f in files_to_read:
+            copied_file = None
+            try:
+                fd, tmp_path = tempfile.mkstemp(suffix=f.suffix)
+                os.close(fd)
+                shutil.copy2(str(f), tmp_path)
+                copied_file = Path(tmp_path)
+                entries = _parse_leveldb_log(copied_file)
                 for entry in entries:
                     if token_key in entry and domain in entry:
                         import re
@@ -142,14 +170,23 @@ def read_local_storage_token(domain: str) -> Optional[str]:
                         for pattern in patterns:
                             match = re.search(pattern, entry)
                             if match:
-                                return match.group(1)
+                                token_val = match.group(1)
+                                if len(token_val) > 10:
+                                    return token_val
+            except (PermissionError, OSError) as e:
+                logger.debug("Cannot process file %s: %s", f, e)
+            finally:
+                if copied_file and copied_file.exists():
+                    try:
+                        copied_file.unlink()
+                    except OSError:
+                        pass
 
     return None
 
 
 async def auto_detect(platform: str) -> Optional[dict]:
     domain = "deepseek.com" if platform == "deepseek" else "qwen.ai"
-    base_url = DEEPSEEK_BASE_URL if platform == "deepseek" else QWEN_BASE_URL
 
     token = await asyncio.to_thread(read_local_storage_token, domain)
     cookies = await asyncio.to_thread(read_browser_cookies, domain)
@@ -178,9 +215,22 @@ async def start_login_poll(platform: str) -> str:
     base_url = DEEPSEEK_BASE_URL if platform == "deepseek" else QWEN_BASE_URL
 
     try:
-        webbrowser.open(base_url)
-    except Exception:
-        pass
+        opened = webbrowser.open(base_url)
+        if opened:
+            logger.info("Opened %s in system browser for %s login", base_url, platform)
+        else:
+            logger.warning("webbrowser.open() returned False for %s, trying fallback", base_url)
+            if os.name == "nt":
+                os.startfile(base_url)
+                logger.info("Opened %s via os.startfile", base_url)
+    except Exception as e:
+        logger.error("Failed to open browser for %s login: %s", platform, e)
+        if os.name == "nt":
+            try:
+                os.startfile(base_url)
+                logger.info("Fallback: opened %s via os.startfile", base_url)
+            except Exception as e2:
+                logger.error("Fallback os.startfile also failed: %s", e2)
 
     asyncio.create_task(_poll_loop(task_id, platform, domain))
 
@@ -189,6 +239,7 @@ async def start_login_poll(platform: str) -> str:
 
 async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
     elapsed = 0
+    found_count = 0
     while elapsed < POLL_MAX_DURATION:
         await asyncio.sleep(POLL_INTERVAL)
         elapsed += POLL_INTERVAL
@@ -198,8 +249,12 @@ async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
 
         _poll_tasks[task_id]["elapsed"] = elapsed
 
-        token = await asyncio.to_thread(read_local_storage_token, domain)
-        cookies = await asyncio.to_thread(read_browser_cookies, domain)
+        try:
+            token = await asyncio.to_thread(read_local_storage_token, domain)
+            cookies = await asyncio.to_thread(read_browser_cookies, domain)
+        except Exception as e:
+            logger.debug("Poll read error at %ds: %s", elapsed, e)
+            continue
 
         if token or cookies:
             save_credential(platform, token or "", cookies or "")
@@ -210,11 +265,17 @@ async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
                 "cookies": cookies or "",
                 "source": "login_poll",
             }
+            logger.info("Found %s credentials after %ds (token=%s, cookies=%s)",
+                       platform, elapsed, bool(token), bool(cookies))
             asyncio.create_task(_cleanup_task(task_id, delay=60))
             return
 
+        if elapsed > 10 and elapsed % 10 < POLL_INTERVAL:
+            logger.info("Still polling %s after %ds...", platform, elapsed)
+
     _poll_tasks[task_id]["status"] = "timeout"
     _poll_tasks[task_id]["result"] = None
+    logger.warning("%s poll timed out after %ds", platform, POLL_MAX_DURATION)
     asyncio.create_task(_cleanup_task(task_id, delay=60))
 
 
