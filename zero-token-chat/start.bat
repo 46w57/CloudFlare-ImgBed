@@ -46,7 +46,7 @@ echo [OK] Backend dependencies ready
 
 :: -- Install frontend deps --
 echo [INFO] Checking frontend Node.js dependencies...
-if not exist "node_modules" (
+if not exist "node_modules\vite\bin\vite.js" (
     echo [INFO] Installing frontend dependencies...
     call npm install
 )
@@ -108,8 +108,22 @@ echo ========================================
 echo.
 
 :: -- Start frontend in THIS window (foreground) --
-:: Any Vite errors will be visible directly here.
-call npm run dev -- --host
+:: Use node to run vite directly - avoids all PATH issues.
+if exist "node_modules\vite\bin\vite.js" (
+    node node_modules\vite\bin\vite.js --host
+) else (
+    echo [ERROR] vite not found in node_modules!
+    echo [INFO] Running npm install to fix this...
+    call npm install
+    if exist "node_modules\vite\bin\vite.js" (
+        node node_modules\vite\bin\vite.js --host
+    ) else (
+        echo [ERROR] npm install failed to install vite.
+        echo [HINT] Try running: npm install
+        pause
+        exit /b 1
+    )
+)
 
 :: -- If Vite exits, show message --
 echo.
