@@ -79,9 +79,11 @@ export async function startLogin(platform: "deepseek" | "qwen") {
 
 export async function pollLogin(taskId: string) {
   return fetchAPI<{
+    task_id: string;
+    platform: string;
     status: "polling" | "found" | "timeout" | "error";
-    token?: string;
-    cookies?: Record<string, string>;
+    result?: { platform: string; token?: string; cookies?: string; source?: string };
+    elapsed: number;
   }>(`/cookies/poll/${taskId}`);
 }
 

@@ -141,8 +141,8 @@ async def auto_detect(platform: str) -> Optional[dict]:
     domain = "deepseek.com" if platform == "deepseek" else "qwen.ai"
     base_url = DEEPSEEK_BASE_URL if platform == "deepseek" else QWEN_BASE_URL
 
-    token = read_local_storage_token(domain)
-    cookies = read_browser_cookies(domain)
+    token = await asyncio.to_thread(read_local_storage_token, domain)
+    cookies = await asyncio.to_thread(read_browser_cookies, domain)
 
     if not token and not cookies:
         return None
@@ -188,8 +188,8 @@ async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
 
         _poll_tasks[task_id]["elapsed"] = elapsed
 
-        token = read_local_storage_token(domain)
-        cookies = read_browser_cookies(domain)
+        token = await asyncio.to_thread(read_local_storage_token, domain)
+        cookies = await asyncio.to_thread(read_browser_cookies, domain)
 
         if token or cookies:
             _poll_tasks[task_id]["status"] = "found"

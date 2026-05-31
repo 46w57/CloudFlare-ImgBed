@@ -90,6 +90,13 @@ export function useChat() {
                   const info = JSON.parse(d.content as string);
                   sessionChatId = info.chat_session_id;
                   sessionParentId = info.parent_message_id;
+                  if (sessionChatId && convId) {
+                    const store = useChatStore.getState();
+                    const conv = store.conversations.find((c) => c.id === convId);
+                    if (conv) {
+                      (conv as any).chatSessionId = sessionChatId;
+                    }
+                  }
                 } catch { /* ignore */ }
               }
               break;

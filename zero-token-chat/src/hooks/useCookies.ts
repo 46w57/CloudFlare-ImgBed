@@ -58,13 +58,14 @@ export function useCookies() {
           try {
             const result = await pollLogin(taskId);
             if (result.status === "found") {
+              const cred: Record<string, unknown> = result.result || {};
               useCookieStore.setState((s) => ({
                 pollingStatus: { ...s.pollingStatus, [platform]: "found" as PollingStatus },
                 credentials: {
                   ...s.credentials,
                   [platform]: {
-                    hasToken: !!result.token,
-                    hasCookies: !!result.cookies,
+                    hasToken: !!cred.token,
+                    hasCookies: !!cred.cookies,
                     status: "valid",
                     lastChecked: new Date().toISOString(),
                   },

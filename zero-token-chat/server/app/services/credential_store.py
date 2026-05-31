@@ -32,12 +32,20 @@ def _decrypt(data: bytes, key: bytes) -> bytes:
 def _load_store() -> dict:
     if not CREDENTIALS_FILE.exists():
         return {}
+    if CREDENTIALS_FILE.stat().st_size == 0:
+        return {}
     key = _derive_key()
     try:
         encrypted = CREDENTIALS_FILE.read_bytes()
         decrypted = _decrypt(encrypted, key)
         return json.loads(decrypted.decode("utf-8"))
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"凭证文件解密失败，可能密钥已变更: {e}")
+        backup_path = CREDENTIALS_FILE.with_suffix(".enc.bak")
+        if not backup_path.exists():
+            CREDENTIALS_FILE.rename(backup_path)
+            logging.getLogger(__name__).info(f"已将旧凭证文件备份到 {backup_path}")
         return {}
 
 

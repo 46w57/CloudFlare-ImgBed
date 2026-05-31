@@ -116,13 +116,14 @@ export const useCookieStore = create<CookieState>()((set, get) => ({
         if (!res.ok) throw new Error("轮询失败");
         const data = await res.json();
         if (data.status === "found") {
+          const result = data.result || {};
           set((s) => ({
             pollingStatus: { ...s.pollingStatus, [platform]: "found" },
             credentials: {
               ...s.credentials,
               [platform]: {
-                hasToken: !!data.token,
-                hasCookies: !!data.cookies,
+                hasToken: !!result.token,
+                hasCookies: !!result.cookies,
                 status: "valid",
                 lastChecked: new Date().toISOString(),
               },
