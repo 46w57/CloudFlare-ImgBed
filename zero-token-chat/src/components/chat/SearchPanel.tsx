@@ -39,7 +39,7 @@ function SearchResultItem({ searchResult }: { searchResult: SearchResult }) {
         <Search className="h-4 w-4 shrink-0 text-[var(--blue)]" />
         <span className="font-medium">搜索: {searchResult.query}</span>
         <span className="ml-auto text-xs text-[var(--text-secondary)]">
-          {searchResult.results.length} 条结果
+          {searchResult.results?.length || 0} 条结果
         </span>
       </button>
       <div
@@ -49,7 +49,7 @@ function SearchResultItem({ searchResult }: { searchResult: SearchResult }) {
         )}
       >
         <div className="border-t border-[var(--border)] px-4 py-3 space-y-3">
-          {searchResult.results.map((r, i) => (
+          {searchResult.results?.map((r, i) => (
             <div key={i} className="group">
               <a
                 href={r.url}

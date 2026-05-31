@@ -1,6 +1,7 @@
 import { Plus, Cookie, Settings, PanelLeftClose, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/store/chatStore";
+import { useSettingsStore } from "@/store/settingsStore";
 import { useNavigate, useLocation } from "react-router-dom";
 import ModelSelector from "./ModelSelector";
 import ConversationList from "./ConversationList";
@@ -14,9 +15,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { createConversation } = useChatStore();
+  const selectedModel = useSettingsStore((s) => s.selectedModel);
 
   const handleNewChat = () => {
-    createConversation("deepseek", "deepseek-chat");
+    const platform = selectedModel.startsWith("qwen") ? "qwen" as const : "deepseek" as const;
+    createConversation(platform, selectedModel);
     if (location.pathname !== "/") {
       navigate("/");
     }

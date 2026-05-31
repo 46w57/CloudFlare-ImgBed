@@ -3,17 +3,18 @@ import { useCookieStore, type PollingStatus } from "@/store/cookieStore";
 import { autoDetect } from "@/utils/api";
 
 export function useCookies() {
-  const store = useCookieStore();
+  const credentials = useCookieStore((s) => s.credentials);
+  const pollingStatus = useCookieStore((s) => s.pollingStatus);
 
   const refreshCredentials = useCallback(async () => {
-    await store.fetchCredentials();
-  }, [store]);
+    await useCookieStore.getState().fetchCredentials();
+  }, []);
 
   const handleStartLogin = useCallback(
     async (platform: "deepseek" | "qwen") => {
-      await store.startLogin(platform);
+      await useCookieStore.getState().startLogin(platform);
     },
-    [store]
+    []
   );
 
   const handleAutoDetect = useCallback(
@@ -52,28 +53,28 @@ export function useCookies() {
 
   const handleManualImport = useCallback(
     async (platform: "deepseek" | "qwen", token: string) => {
-      await store.manualImport(platform, token);
+      await useCookieStore.getState().manualImport(platform, token);
     },
-    [store]
+    []
   );
 
   const handleValidate = useCallback(
     async (platform: "deepseek" | "qwen") => {
-      await store.validateCredential(platform);
+      await useCookieStore.getState().validateCredential(platform);
     },
-    [store]
+    []
   );
 
   const handleDelete = useCallback(
     async (platform: "deepseek" | "qwen") => {
-      await store.deleteCredential(platform);
+      await useCookieStore.getState().deleteCredential(platform);
     },
-    [store]
+    []
   );
 
   return {
-    credentials: store.credentials,
-    pollingStatus: store.pollingStatus,
+    credentials,
+    pollingStatus,
     refreshCredentials,
     handleStartLogin,
     handleAutoDetect,

@@ -55,8 +55,8 @@ export function useChat() {
       try {
         const conv = useChatStore.getState().conversations.find((c) => c.id === convId);
         const messages = (conv?.messages || [])
-          .filter((m) => m.role === "user" || (m.role === "assistant" && m.content))
           .slice(0, -1)
+          .filter((m) => m.role === "user" || (m.role === "assistant" && m.content))
           .map((m) => ({ role: m.role, content: m.content }));
 
         const response = await sendChatMessage({
@@ -157,9 +157,17 @@ export function useChat() {
               break;
             }
             case "search": {
-              const d = event.data as unknown as SearchResult;
-              searchResults.push(d);
-              updateLastMessage(convId!, { searchResults: [...searchResults] });
+              const d = event.data as { content?: string };
+              if (d.content) {
+                try {
+                  const parsed = typeof d.content === "string" ? JSON.parse(d.content) : d.content;
+                  searchResults.push(parsed as SearchResult);
+                  updateLastMessage(convId!, { searchResults: [...searchResults] });
+                } catch {
+                  searchResults.push({ query: String(d.content), results: [] });
+                  updateLastMessage(convId!, { searchResults: [...searchResults] });
+                }
+              }
               break;
             }
             case "error": {

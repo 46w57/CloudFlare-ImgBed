@@ -21,10 +21,14 @@ async def _cleanup_task(task_id: str, delay: int = 60) -> None:
 def read_browser_cookies(domain: str) -> Optional[str]:
     try:
         import rookiepy
-        browsers = ["chrome", "edge", "firefox"]
-        for browser_name in browsers:
+        browser_funcs = []
+        for name in ["chrome", "edge", "firefox"]:
+            func = getattr(rookiepy, name, None)
+            if func:
+                browser_funcs.append(func)
+        for browser_func in browser_funcs:
             try:
-                cookies = rookiepy.load(browser=browser_name, domains=[domain])
+                cookies = browser_func([domain])
                 if not cookies:
                     continue
                 if isinstance(cookies, list):
