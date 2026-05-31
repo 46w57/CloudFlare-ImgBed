@@ -3,6 +3,9 @@ setlocal EnableDelayedExpansion
 
 cd /d "%~dp0"
 
+set "PROJECT_DIR=%~dp0"
+set "SERVER_DIR=%~dp0server"
+
 echo.
 echo ========================================
 echo    Zero Token Chat - Quick Start
@@ -48,7 +51,7 @@ echo [OK] Backend dependencies ready
 echo [INFO] Checking frontend Node.js dependencies...
 if not exist "node_modules" (
     echo [INFO] Installing frontend dependencies...
-    npm install
+    call npm install
 )
 echo [OK] Frontend dependencies ready
 
@@ -57,9 +60,16 @@ if not exist "%USERPROFILE%\.zero-token-chat\sandbox" (
     mkdir "%USERPROFILE%\.zero-token-chat\sandbox"
 )
 
+:: -- Write helper scripts to avoid CMD quoting issues with Chinese paths --
+echo cd /d "!SERVER_DIR!" > "%TEMP%\zt-backend.bat"
+echo python start.py >> "%TEMP%\zt-backend.bat"
+
+echo cd /d "!PROJECT_DIR!" > "%TEMP%\zt-frontend.bat"
+echo call npx vite --host >> "%TEMP%\zt-frontend.bat"
+
 :: -- Start backend --
 echo [INFO] Starting backend (FastAPI @ http://localhost:8000)...
-start "ZeroToken-Backend" /min cmd /c "cd /d %~dp0server && python start.py"
+start "ZeroToken-Backend" cmd /c "%TEMP%\zt-backend.bat"
 
 :: -- Wait for backend --
 echo [INFO] Waiting for backend to be ready...
@@ -67,6 +77,7 @@ set WAITED=0
 :wait_backend
 if !WAITED! geq 20 (
     echo [ERROR] Backend startup timeout. Check if port 8000 is in use.
+    echo [HINT] Look at the backend window for error details.
     pause
     exit /b 1
 )
@@ -85,14 +96,23 @@ echo [OK] Backend is ready
 
 :: -- Start frontend --
 echo [INFO] Starting frontend (Vite @ http://localhost:5173)...
-start "ZeroToken-Frontend" /min cmd /c "cd /d %~dp0 && npx vite --host"
+echo [INFO] If frontend fails, check the Vite window for errors.
+start "ZeroToken-Frontend" cmd /c "%TEMP%\zt-frontend.bat"
 
 :: -- Wait for frontend --
 echo [INFO] Waiting for frontend to be ready...
 set WAITED=0
+set FRONTEND_READY=0
 :wait_frontend
-if !WAITED! geq 20 (
-    echo [WARN] Frontend startup is slow, it may still be initializing...
+if !WAITED! geq 30 (
+    echo.
+    echo [WARN] Frontend not ready after 30 seconds.
+    echo [HINT] Check the "ZeroToken-Frontend" window for errors.
+    echo [HINT] Common fixes:
+    echo   1. Close other apps using port 5173
+    echo   2. Run "npm install" manually in the project folder
+    echo   3. Try "npx vite" manually to see the error
+    echo.
     goto frontend_done
 )
 where curl >nul 2>&1
@@ -101,7 +121,10 @@ if !errorlevel! equ 0 (
 ) else (
     python -c "import urllib.request;urllib.request.urlopen('http://localhost:5173',timeout=2)" >nul 2>&1
 )
-if !errorlevel! equ 0 goto frontend_ready
+if !errorlevel! equ 0 (
+    set FRONTEND_READY=1
+    goto frontend_ready
+)
 timeout /t 1 /nobreak >nul
 set /a WAITED+=1
 goto wait_frontend
@@ -113,7 +136,11 @@ echo.
 echo ========================================
 echo    Zero Token Chat Started!
 echo ----------------------------------------
-echo    Frontend: http://localhost:5173
+if "!FRONTEND_READY!"=="1" (
+    echo    Frontend: http://localhost:5173
+) else (
+    echo    Frontend: NOT READY - check Vite window
+)
 echo    Backend:  http://localhost:8000
 echo    API Docs: http://localhost:8000/docs
 echo ----------------------------------------
@@ -121,8 +148,15 @@ echo    Close this window to stop all services
 echo ========================================
 echo.
 
-:: -- Open browser --
-start http://localhost:5173
+:: -- Open browser only if frontend is ready --
+if "!FRONTEND_READY!"=="1" (
+    echo [INFO] Opening browser...
+    start http://localhost:5173
+) else (
+    echo [INFO] Frontend not ready, not opening browser.
+    echo [INFO] Once Vite is running, open http://localhost:5173 manually.
+)
 
+echo.
 echo Press Ctrl+C or close this window to stop all services...
 pause
