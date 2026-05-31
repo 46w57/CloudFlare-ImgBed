@@ -31,6 +31,7 @@ export interface ChatRequest {
   enableSearch?: boolean;
   enableThinking?: boolean;
   expertMode?: boolean;
+  chatSessionId?: string;
   temperature?: number;
   maxTokens?: number;
   topP?: number;
@@ -70,7 +71,7 @@ export async function sendChatMessage(
 }
 
 export async function startLogin(platform: "deepseek" | "qwen") {
-  return fetchAPI<{ taskId: string; status: string }>("/cookies/start-login", {
+  return fetchAPI<{ task_id: string; taskId?: string; status: string }>("/cookies/start-login", {
     method: "POST",
     body: JSON.stringify({ platform }),
   });
@@ -106,7 +107,7 @@ export async function manualImport(
 }
 
 export async function getCredentials() {
-  return fetchAPI<{ credentials: CredentialInfo[] }>("/cookies");
+  return fetchAPI<Record<string, CredentialInfo>>("/cookies");
 }
 
 export async function validateCredential(platform: "deepseek" | "qwen") {

@@ -1,6 +1,6 @@
 export interface StreamEvent {
-  type: "content" | "thinking" | "tool_call" | "tool_result" | "search" | "error" | "done";
-  data: unknown;
+  type: "content" | "thinking" | "tool_call" | "tool_result" | "search" | "error" | "done" | "session_info";
+  data: Record<string, unknown>;
 }
 
 export async function* parseSSEStream(
@@ -21,16 +21,22 @@ export async function* parseSSEStream(
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith(":")) continue;
 
-      if (trimmed.startsWith("data: ")) {
-        const dataStr = trimmed.slice(6);
+      if (trimmed.startsWith("data:")) {
+        const dataStr = trimmed.slice(5).trimStart();
         if (dataStr === "[DONE]") {
-          yield { type: "done", data: null };
+          yield { type: "done", data: {} };
           return;
         }
         try {
           const parsed = JSON.parse(dataStr);
           const eventType = parsed.type || "content";
-          yield { type: eventType, data: parsed.data ?? parsed } as StreamEvent;
+          const eventData: Record<string, unknown> = {};
+          for (const [key, val] of Object.entries(parsed)) {
+            if (key !== "type") {
+              eventData[key] = val;
+            }
+          }
+          yield { type: eventType, data: eventData } as StreamEvent;
         } catch {
           yield { type: "content", data: { content: dataStr } };
         }
@@ -40,12 +46,19 @@ export async function* parseSSEStream(
 
   if (buffer.trim()) {
     const trimmed = buffer.trim();
-    if (trimmed.startsWith("data: ")) {
-      const dataStr = trimmed.slice(6);
+    if (trimmed.startsWith("data:")) {
+      const dataStr = trimmed.slice(5).trimStart();
       if (dataStr !== "[DONE]") {
         try {
           const parsed = JSON.parse(dataStr);
-          yield { type: parsed.type || "content", data: parsed.data ?? parsed };
+          const eventType = parsed.type || "content";
+          const eventData: Record<string, unknown> = {};
+          for (const [key, val] of Object.entries(parsed)) {
+            if (key !== "type") {
+              eventData[key] = val;
+            }
+          }
+          yield { type: eventType, data: eventData };
         } catch {
           yield { type: "content", data: { content: dataStr } };
         }

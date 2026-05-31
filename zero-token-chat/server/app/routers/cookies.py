@@ -18,7 +18,7 @@ class ManualImportRequest(BaseModel):
 
 class ValidateRequest(BaseModel):
     platform: str
-    token: str
+    token: Optional[str] = None
     cookies: Optional[str] = ""
 
 
@@ -91,16 +91,26 @@ async def validate_credential(request: ValidateRequest):
     if request.platform not in ("deepseek", "qwen"):
         raise HTTPException(status_code=400, detail="不支持的平台，仅支持 deepseek 和 qwen")
 
+    token = request.token
+    cookies = request.cookies or ""
+
+    if not token:
+        cred = load_credential(request.platform)
+        if not cred or not cred.get("token"):
+            return {"valid": False, "message": f"{request.platform} 凭证未配置"}
+        token = cred["token"]
+        cookies = cred.get("cookies", "")
+
     import httpx
     from app.config import DEEPSEEK_BASE_URL, QWEN_BASE_URL
 
     if request.platform == "deepseek":
         headers = {
-            "Authorization": f"Bearer {request.token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
-        if request.cookies:
-            headers["Cookie"] = request.cookies
+        if cookies:
+            headers["Cookie"] = cookies
         try:
             async with httpx.AsyncClient(base_url=DEEPSEEK_BASE_URL, timeout=15) as client:
                 resp = await client.get("/api/v0/chat/list", headers=headers)
@@ -114,7 +124,7 @@ async def validate_credential(request: ValidateRequest):
             return {"valid": False, "message": f"连接失败: {str(e)}"}
     else:
         headers = {
-            "Authorization": f"Bearer {request.token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
         try:

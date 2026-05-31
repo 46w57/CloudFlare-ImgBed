@@ -12,16 +12,24 @@ export function useCookies() {
 
   const refreshCredentials = useCallback(async () => {
     try {
-      const data = await getCredentials();
-      const creds = data.credentials;
-      const deepseek = creds.find((c) => c.platform === "deepseek");
-      const qwen = creds.find((c) => c.platform === "qwen");
-      useCookieStore.setState((s) => ({
-        credentials: {
-          deepseek: deepseek || s.credentials.deepseek,
-          qwen: qwen || s.credentials.qwen,
-        },
-      }));
+      const res = await fetch("/api/cookies");
+      if (!res.ok) throw new Error("获取凭证失败");
+      const data = await res.json();
+      useCookieStore.setState((s) => {
+        const newCreds = { ...s.credentials };
+        for (const platform of ["deepseek", "qwen"] as const) {
+          const c = data[platform];
+          if (c) {
+            newCreds[platform] = {
+              hasToken: c.hasToken ?? false,
+              hasCookies: c.hasCookies ?? false,
+              status: c.hasToken ? "valid" : "empty",
+              lastChecked: new Date().toISOString(),
+            };
+          }
+        }
+        return { credentials: newCreds };
+      });
     } catch {
       console.error("刷新凭证失败");
     }
@@ -34,7 +42,7 @@ export function useCookies() {
           pollingStatus: { ...s.pollingStatus, [platform]: "polling" as PollingStatus },
         }));
         const data = await startLogin(platform);
-        const taskId = data.taskId;
+        const taskId = data.task_id || data.taskId;
 
         const maxAttempts = 150;
         let attempt = 0;

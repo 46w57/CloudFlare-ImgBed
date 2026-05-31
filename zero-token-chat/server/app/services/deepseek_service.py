@@ -150,6 +150,8 @@ async def chat_stream(
     if not parent_message_id:
         parent_message_id = str(uuid.uuid4())
 
+    yield {"type": "session_info", "content": json.dumps({"chat_session_id": chat_session_id, "parent_message_id": parent_message_id})}
+
     headers = _get_auth_headers(token, cookies)
 
     payload = {

@@ -65,6 +65,7 @@ export function useChat() {
           stream: true,
           enableSearch,
           enableThinking,
+          chatSessionId: (conv as any)?.chatSessionId,
           temperature: modelParams.temperature,
           maxTokens: modelParams.maxTokens,
           topP: modelParams.topP,
@@ -77,9 +78,22 @@ export function useChat() {
         let thinkingContent = "";
         const toolCalls: ToolCall[] = [];
         const searchResults: SearchResult[] = [];
+        let sessionChatId: string | undefined;
+        let sessionParentId: string | undefined;
 
         for await (const event of parseSSEStream(reader)) {
           switch (event.type) {
+            case "session_info": {
+              const d = event.data as { content?: string };
+              if (d.content) {
+                try {
+                  const info = JSON.parse(d.content as string);
+                  sessionChatId = info.chat_session_id;
+                  sessionParentId = info.parent_message_id;
+                } catch { /* ignore */ }
+              }
+              break;
+            }
             case "content": {
               const d = event.data as { content?: string };
               if (d.content) {
@@ -97,35 +111,49 @@ export function useChat() {
               break;
             }
             case "tool_call": {
-              const d = event.data as { id?: string; name?: string; arguments?: string };
+              const d = event.data as { id?: string; name?: string; arguments?: string; content?: string };
+              let toolName = d.name || "unknown";
+              let toolArgs = d.arguments || "";
+              let toolId = d.id || crypto.randomUUID();
+              if (d.content && !d.name) {
+                try {
+                  const parsed = JSON.parse(d.content);
+                  toolName = parsed.name || "unknown";
+                  toolArgs = typeof parsed.arguments === "string" ? parsed.arguments : JSON.stringify(parsed.arguments || {});
+                  toolId = parsed.id || toolId;
+                } catch {
+                  toolArgs = d.content;
+                }
+              }
               toolCalls.push({
-                id: d.id || crypto.randomUUID(),
-                name: d.name || "unknown",
-                arguments: d.arguments || "",
+                id: toolId,
+                name: toolName,
+                arguments: toolArgs,
                 status: "running",
               });
               updateLastMessage(convId!, { toolCalls: [...toolCalls] });
               break;
             }
             case "tool_result": {
-              const d = event.data as { id?: string; result?: string; success?: boolean };
-              const tc = toolCalls.find((t) => t.id === d.id);
+              const d = event.data as { tool_call_id?: string; id?: string; content?: string; result?: string; success?: boolean; tool_name?: string };
+              const matchId = d.tool_call_id || d.id;
+              const tc = toolCalls.find((t) => t.id === matchId || t.name === d.tool_name);
               if (tc) {
-                tc.result = d.result;
-                tc.status = d.success ? "success" : "error";
+                tc.result = d.result || d.content;
+                tc.status = d.success !== false ? "success" : "error";
               }
               updateLastMessage(convId!, { toolCalls: [...toolCalls] });
               break;
             }
             case "search": {
-              const d = event.data as SearchResult;
+              const d = event.data as unknown as SearchResult;
               searchResults.push(d);
               updateLastMessage(convId!, { searchResults: [...searchResults] });
               break;
             }
             case "error": {
-              const d = event.data as { message?: string };
-              fullContent += `\n\n❌ 错误: ${d.message || "未知错误"}`;
+              const d = event.data as { message?: string; content?: string };
+              fullContent += `\n\n❌ 错误: ${d.message || d.content || "未知错误"}`;
               updateLastMessage(convId!, { content: fullContent });
               break;
             }

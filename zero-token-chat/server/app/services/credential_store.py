@@ -9,7 +9,7 @@ from app.config import DATA_DIR, CREDENTIALS_FILE
 
 
 def _derive_key() -> bytes:
-    machine_id = os.uname().nodename if hasattr(os, "uname") else os.getenv("HOSTNAME", "default")
+    machine_id = os.getenv("COMPUTERNAME", os.getenv("HOSTNAME", "default"))
     user = os.getenv("USER", os.getenv("USERNAME", "unknown"))
     raw = f"{machine_id}:{user}:zero-token-chat-v1"
     return hashlib.sha256(raw.encode()).digest()

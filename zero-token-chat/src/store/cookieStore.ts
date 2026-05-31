@@ -58,22 +58,18 @@ export const useCookieStore = create<CookieState>()((set, get) => ({
       const res = await fetch("/api/cookies");
       if (!res.ok) throw new Error("获取凭证失败");
       const data = await res.json();
-      const creds = data.credentials as Array<{
-        platform: "deepseek" | "qwen";
-        hasToken: boolean;
-        hasCookies: boolean;
-        status: CredentialInfo["status"];
-        lastChecked: string;
-      }>;
       set((state) => {
         const newCreds = { ...state.credentials };
-        for (const c of creds) {
-          newCreds[c.platform] = {
-            hasToken: c.hasToken,
-            hasCookies: c.hasCookies,
-            status: c.status,
-            lastChecked: c.lastChecked,
-          };
+        for (const platform of ["deepseek", "qwen"] as const) {
+          const c = data[platform];
+          if (c) {
+            newCreds[platform] = {
+              hasToken: c.hasToken ?? false,
+              hasCookies: c.hasCookies ?? false,
+              status: c.hasToken ? "valid" : "empty",
+              lastChecked: c.lastChecked || "",
+            };
+          }
         }
         return { credentials: newCreds };
       });
@@ -94,7 +90,7 @@ export const useCookieStore = create<CookieState>()((set, get) => ({
       });
       if (!res.ok) throw new Error("启动登录失败");
       const data = await res.json();
-      const taskId = data.taskId as string;
+      const taskId = (data.task_id || data.taskId) as string;
       set((s) => ({ taskId: { ...s.taskId, [platform]: taskId } }));
       get().pollStatus(platform, taskId);
     } catch {

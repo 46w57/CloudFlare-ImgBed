@@ -15,21 +15,28 @@ _poll_tasks: dict = {}
 def read_browser_cookies(domain: str) -> Optional[str]:
     try:
         import rookiepy
-        cookies = rookiepy.load(domain=domain)
-        if isinstance(cookies, list):
-            parts = []
-            for c in cookies:
-                name = c.get("name", "")
-                value = c.get("value", "")
-                if name and value:
-                    parts.append(f"{name}={value}")
-            return "; ".join(parts) if parts else None
-        elif isinstance(cookies, dict):
-            parts = []
-            for name, value in cookies.items():
-                if name and value:
-                    parts.append(f"{name}={value}")
-            return "; ".join(parts) if parts else None
+        browsers = ["chrome", "edge", "firefox"]
+        for browser_name in browsers:
+            try:
+                cookies = rookiepy.load(browser=browser_name, domains=[domain])
+                if not cookies:
+                    continue
+                if isinstance(cookies, list):
+                    parts = []
+                    for c in cookies:
+                        name = c.get("name", "")
+                        value = c.get("value", "")
+                        if name and value:
+                            parts.append(f"{name}={value}")
+                    return "; ".join(parts) if parts else None
+                elif isinstance(cookies, dict):
+                    parts = []
+                    for name, value in cookies.items():
+                        if name and value:
+                            parts.append(f"{name}={value}")
+                    return "; ".join(parts) if parts else None
+            except Exception:
+                continue
         return None
     except ImportError:
         return None
@@ -78,15 +85,32 @@ def _parse_leveldb_log(file_path: Path) -> list[str]:
 def read_local_storage_token(domain: str) -> Optional[str]:
     token_key = "userToken" if "deepseek" in domain else "token"
     home = Path.home()
-
-    chrome_default = home / ".config/google-chrome/Default/Local Storage/leveldb"
-    edge_default = home / ".config/microsoft-edge/Default/Local Storage/leveldb"
+    local_app = os.environ.get("LOCALAPPDATA", "")
+    app_data = os.environ.get("APPDATA", "")
 
     leveldb_paths = []
-    if chrome_default.exists():
-        leveldb_paths.append(chrome_default)
-    if edge_default.exists():
-        leveldb_paths.append(edge_default)
+
+    if os.name == "nt" or local_app:
+        chrome_win = Path(local_app) / "Google/Chrome/User Data/Default/Local Storage/leveldb"
+        edge_win = Path(local_app) / "Microsoft/Edge/User Data/Default/Local Storage/leveldb"
+        if chrome_win.exists():
+            leveldb_paths.append(chrome_win)
+        if edge_win.exists():
+            leveldb_paths.append(edge_win)
+        for profile_dir in ["Profile 1", "Profile 2", "Profile 3"]:
+            cp = Path(local_app) / f"Google/Chrome/User Data/{profile_dir}/Local Storage/leveldb"
+            ep = Path(local_app) / f"Microsoft/Edge/User Data/{profile_dir}/Local Storage/leveldb"
+            if cp.exists():
+                leveldb_paths.append(cp)
+            if ep.exists():
+                leveldb_paths.append(ep)
+
+    chrome_linux = home / ".config/google-chrome/Default/Local Storage/leveldb"
+    edge_linux = home / ".config/microsoft-edge/Default/Local Storage/leveldb"
+    if chrome_linux.exists():
+        leveldb_paths.append(chrome_linux)
+    if edge_linux.exists():
+        leveldb_paths.append(edge_linux)
 
     for base in [home / ".config/google-chrome", home / ".config/microsoft-edge"]:
         if base.exists():
