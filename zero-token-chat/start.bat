@@ -109,7 +109,7 @@ echo.
 
 :: -- Start frontend in THIS window (foreground) --
 :: Any Vite errors will be visible directly here.
-call npx vite --host
+call npm run dev -- --host
 
 :: -- If Vite exits, show message --
 echo.

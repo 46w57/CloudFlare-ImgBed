@@ -114,7 +114,7 @@ log_ok "后端服务已就绪"
 # ── 启动前端 ──
 log_info "启动前端服务 (Vite @ http://localhost:5173)..."
 cd "$SCRIPT_DIR"
-npx vite --host 2>&1 &
+npm run dev -- --host 2>&1 &
 FRONTEND_PID=$!
 
 # ── 等待前端就绪 ──
