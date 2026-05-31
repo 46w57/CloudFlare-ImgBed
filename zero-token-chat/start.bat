@@ -1,120 +1,128 @@
 @echo off
-chcp 65001 >nul 2>&1
 setlocal EnableDelayedExpansion
 
 cd /d "%~dp0"
 
 echo.
-echo ╔══════════════════════════════════════╗
-echo ║     Zero Token Chat - 一键启动       ║
-echo ╚══════════════════════════════════════╝
+echo ========================================
+echo    Zero Token Chat - Quick Start
+echo ========================================
 echo.
 
-:: ── 检查 Python ──
-echo [INFO] 检查 Python 环境...
+:: -- Check Python --
+echo [INFO] Checking Python...
 where python >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] 未找到 Python，请先安装 Python 3.10+
+if !errorlevel! neq 0 (
+    echo [ERROR] Python not found. Please install Python 3.10+
     pause
     exit /b 1
 )
-for /f "tokens=*" %%v in ('python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"') do set PY_VERSION=%%v
-echo [OK] Python %PY_VERSION%
+for /f "tokens=*" %%v in ('python -c "import sys;print(str(sys.version_info.major)+'.'+str(sys.version_info.minor))"') do set PY_VERSION=%%v
+echo [OK] Python !PY_VERSION!
 
-:: ── 检查 Node.js ──
-echo [INFO] 检查 Node.js 环境...
+:: -- Check Node.js --
+echo [INFO] Checking Node.js...
 where node >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [ERROR] 未找到 Node.js，请先安装 Node.js 18+
+if !errorlevel! neq 0 (
+    echo [ERROR] Node.js not found. Please install Node.js 18+
     pause
     exit /b 1
 )
 for /f "tokens=*" %%v in ('node -v') do set NODE_VERSION=%%v
-echo [OK] Node.js %NODE_VERSION%
+echo [OK] Node.js !NODE_VERSION!
 
-:: ── 安装后端依赖 ──
-echo [INFO] 检查后端 Python 依赖...
+:: -- Install backend deps --
+echo [INFO] Checking backend Python dependencies...
 python -c "import fastapi" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo [INFO] 安装后端依赖...
+if !errorlevel! neq 0 (
+    echo [INFO] Installing backend dependencies...
     pip install -r server\requirements.txt
-    if %errorlevel% neq 0 (
-        echo [WARN] 部分依赖安装失败，尝试安装核心依赖...
+    if !errorlevel! neq 0 (
+        echo [WARN] Some deps failed, installing core deps only...
         pip install fastapi uvicorn httpx sse-starlette cryptography python-multipart
     )
 )
-echo [OK] 后端依赖就绪
+echo [OK] Backend dependencies ready
 
-:: ── 安装前端依赖 ──
-echo [INFO] 检查前端 Node.js 依赖...
+:: -- Install frontend deps --
+echo [INFO] Checking frontend Node.js dependencies...
 if not exist "node_modules" (
-    echo [INFO] 安装前端依赖...
+    echo [INFO] Installing frontend dependencies...
     npm install
 )
-echo [OK] 前端依赖就绪
+echo [OK] Frontend dependencies ready
 
-:: ── 创建数据目录 ──
+:: -- Create data dir --
 if not exist "%USERPROFILE%\.zero-token-chat\sandbox" (
     mkdir "%USERPROFILE%\.zero-token-chat\sandbox"
 )
 
-:: ── 启动后端 ──
-echo [INFO] 启动后端服务 (FastAPI @ http://localhost:8000)...
-start "Zero-Token-Backend" /min cmd /c "cd /d %~dp0\server && python start.py"
+:: -- Start backend --
+echo [INFO] Starting backend (FastAPI @ http://localhost:8000)...
+start "ZeroToken-Backend" /min cmd /c "cd /d %~dp0server && python start.py"
 
-:: ── 等待后端就绪 ──
-echo [INFO] 等待后端服务就绪...
+:: -- Wait for backend --
+echo [INFO] Waiting for backend to be ready...
 set WAITED=0
 :wait_backend
-if %WAITED% geq 15 (
-    echo [ERROR] 后端服务启动超时，请检查端口 8000 是否被占用
+if !WAITED! geq 20 (
+    echo [ERROR] Backend startup timeout. Check if port 8000 is in use.
     pause
     exit /b 1
 )
-curl -s http://localhost:8000/api/health >nul 2>&1
-if %errorlevel% equ 0 goto backend_ready
+where curl >nul 2>&1
+if !errorlevel! equ 0 (
+    curl -s http://localhost:8000/api/health >nul 2>&1
+) else (
+    python -c "import urllib.request;urllib.request.urlopen('http://localhost:8000/api/health',timeout=2)" >nul 2>&1
+)
+if !errorlevel! equ 0 goto backend_ready
 timeout /t 1 /nobreak >nul
 set /a WAITED+=1
 goto wait_backend
 :backend_ready
-echo [OK] 后端服务已就绪
+echo [OK] Backend is ready
 
-:: ── 启动前端 ──
-echo [INFO] 启动前端服务 (Vite @ http://localhost:5173)...
-start "Zero-Token-Frontend" /min cmd /c "cd /d %~dp0 && npx vite --host"
+:: -- Start frontend --
+echo [INFO] Starting frontend (Vite @ http://localhost:5173)...
+start "ZeroToken-Frontend" /min cmd /c "cd /d %~dp0 && npx vite --host"
 
-:: ── 等待前端就绪 ──
-echo [INFO] 等待前端服务就绪...
+:: -- Wait for frontend --
+echo [INFO] Waiting for frontend to be ready...
 set WAITED=0
 :wait_frontend
-if %WAITED% geq 15 (
-    echo [WARN] 前端服务启动较慢，可能仍在初始化中...
+if !WAITED! geq 20 (
+    echo [WARN] Frontend startup is slow, it may still be initializing...
     goto frontend_done
 )
-curl -s http://localhost:5173 >nul 2>&1
-if %errorlevel% equ 0 goto frontend_ready
+where curl >nul 2>&1
+if !errorlevel! equ 0 (
+    curl -s http://localhost:5173 >nul 2>&1
+) else (
+    python -c "import urllib.request;urllib.request.urlopen('http://localhost:5173',timeout=2)" >nul 2>&1
+)
+if !errorlevel! equ 0 goto frontend_ready
 timeout /t 1 /nobreak >nul
 set /a WAITED+=1
 goto wait_frontend
 :frontend_ready
-echo [OK] 前端服务已就绪
+echo [OK] Frontend is ready
 :frontend_done
 
 echo.
-echo ╔══════════════════════════════════════╗
-echo ║   🎉 Zero Token Chat 启动成功！      ║
-echo ╠══════════════════════════════════════╣
-echo ║                                      ║
-echo ║   前端:  http://localhost:5173        ║
-echo ║   后端:  http://localhost:8000        ║
-echo ║   API:   http://localhost:8000/docs   ║
-echo ║                                      ║
-echo ║   关闭此窗口将停止所有服务            ║
-echo ╚══════════════════════════════════════╝
+echo ========================================
+echo    Zero Token Chat Started!
+echo ----------------------------------------
+echo    Frontend: http://localhost:5173
+echo    Backend:  http://localhost:8000
+echo    API Docs: http://localhost:8000/docs
+echo ----------------------------------------
+echo    Close this window to stop all services
+echo ========================================
 echo.
 
-:: ── 自动打开浏览器 ──
+:: -- Open browser --
 start http://localhost:5173
 
-echo 按 Ctrl+C 或关闭此窗口停止所有服务...
+echo Press Ctrl+C or close this window to stop all services...
 pause
