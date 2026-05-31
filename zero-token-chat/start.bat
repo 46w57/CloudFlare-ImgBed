@@ -46,9 +46,21 @@ echo [OK] Backend dependencies ready
 
 :: -- Install frontend deps --
 echo [INFO] Checking frontend Node.js dependencies...
-if not exist "node_modules\vite\bin\vite.js" (
-    echo [INFO] Installing frontend dependencies...
+set NEED_INSTALL=0
+if not exist "node_modules\vite\bin\vite.js" set NEED_INSTALL=1
+if not exist "node_modules\@rollup\rollup-win32-x64-msvc" (
+    if exist "node_modules\rollup" set NEED_INSTALL=1
+)
+if "!NEED_INSTALL!"=="1" (
+    echo [INFO] Fixing frontend dependencies...
+    if exist "package-lock.json" del "package-lock.json"
+    if exist "node_modules" rmdir /s /q "node_modules"
     call npm install
+    if !errorlevel! neq 0 (
+        echo [ERROR] npm install failed.
+        pause
+        exit /b 1
+    )
 )
 echo [OK] Frontend dependencies ready
 
