@@ -1,0 +1,113 @@
+{
+  "tests": {
+    "backend_health": {
+      "pass": true,
+      "detail": {
+        "status": "ok",
+        "service": "zero-token-chat"
+      }
+    },
+    "uuid_fix": {
+      "pass": true,
+      "files": [
+        {
+          "file": "src/utils/api.ts",
+          "has_old_direct_call": false,
+          "direct_calls": [],
+          "uses_new_func": true,
+          "has_proper_import": true,
+          "fixed": true
+        },
+        {
+          "file": "src/hooks/useChat.ts",
+          "has_old_direct_call": false,
+          "direct_calls": [],
+          "uses_new_func": true,
+          "has_proper_import": true,
+          "fixed": true
+        },
+        {
+          "file": "src/store/chatStore.ts",
+          "has_old_direct_call": false,
+          "direct_calls": [],
+          "uses_new_func": true,
+          "has_proper_import": true,
+          "fixed": true
+        }
+      ]
+    },
+    "cookie_apis": {
+      "pass": true,
+      "list": true,
+      "import": true,
+      "delete": true,
+      "validate_response": {
+        "valid": true,
+        "message": "Qwen 凭证有效"
+      }
+    },
+    "chat_endpoint": {
+      "pass": "Expecting value: line 1 column 1 (char 0)",
+      "status": 0,
+      "response_preview": "{'error': 'Expecting value: line 1 column 1 (char 0)'}"
+    },
+    "models_endpoint": {
+      "pass": true,
+      "count": 6,
+      "models": [
+        "deepseek-chat",
+        "deepseek-reasoner",
+        "qwen3-max",
+        "qwen3-235b-a22b",
+        "qwen-plus",
+        "qwen-turbo"
+      ]
+    },
+    "autodetect": {
+      "pass": true,
+      "found": false,
+      "detail": {
+        "found": false,
+        "message": "未检测到浏览器凭证，请手动导入或登录"
+      }
+    },
+    "frontend_build": {
+      "pass": true,
+      "has_dist": true,
+      "has_index": true,
+      "js_files_count": 1,
+      "uuid_direct_calls_in_build": 0,
+      "has_vite_proxy": true
+    },
+    "browser_support": {
+      "pass": true,
+      "checks": {
+        "chrome_windows": true,
+        "edge_windows": true,
+        "brave_windows": true,
+        "chromium_linux": true,
+        "macos_support": true,
+        "rookiepy_chromium": true,
+        "rookiepy_brave": true,
+        "temp_copy": true,
+        "token_len_check": true
+      }
+    },
+    "error_handling": {
+      "pass": true,
+      "checks": {
+        "try_catch_around_send": true,
+        "error_message_display": true,
+        "finally_streaming": true,
+        "slice_before_filter": true
+      }
+    }
+  },
+  "code_checks": {
+    "uuid_impl": {
+      "has_fallback": true,
+      "has_crypto_check": true,
+      "complete": true
+    }
+  }
+}
