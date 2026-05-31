@@ -108,7 +108,15 @@ async def _stream_chat(request: ChatRequest):
             event_type = event.get("type", "")
             event_content = event.get("content", "")
 
-            if event_type == "tool_call":
+            if event_type == "session_info":
+                try:
+                    info = json.loads(event_content) if event_content else {}
+                    if info.get("chat_session_id"):
+                        chat_session_id = info["chat_session_id"]
+                except json.JSONDecodeError:
+                    pass
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            elif event_type == "tool_call":
                 has_tool_call = True
                 try:
                     tool_data = json.loads(event_content)

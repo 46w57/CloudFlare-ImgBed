@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import json
+import asyncio
 from pathlib import Path
 from typing import Optional
 
@@ -88,7 +89,7 @@ async def _tool_read_file(arguments: dict) -> str:
     try:
         offset = arguments.get("offset", 0)
         limit = arguments.get("limit", 2000)
-        content = target.read_text(encoding="utf-8", errors="replace")
+        content = await asyncio.to_thread(target.read_text, encoding="utf-8", errors="replace")
         lines = content.splitlines()
         if offset > 0:
             lines = lines[offset:]
@@ -110,7 +111,7 @@ async def _tool_write_file(arguments: dict) -> str:
         return str(e)
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(content, encoding="utf-8")
+        await asyncio.to_thread(target.write_text, content, encoding="utf-8")
         return f"文件写入成功: {path} ({len(content)} 字符)"
     except Exception as e:
         return f"写入文件失败: {str(e)}"
@@ -130,7 +131,7 @@ async def _tool_list_dir(arguments: dict) -> str:
         return f"错误: 不是目录: {path}"
     try:
         entries = []
-        for item in sorted(target.iterdir()):
+        for item in sorted(await asyncio.to_thread(lambda: list(target.iterdir()))):
             prefix = "DIR " if item.is_dir() else "FILE "
             size = ""
             if item.is_file():
@@ -156,11 +157,11 @@ async def _tool_apply_patch(arguments: dict) -> str:
     if not target.exists():
         return f"错误: 文件不存在: {path}"
     try:
-        content = target.read_text(encoding="utf-8", errors="replace")
+        content = await asyncio.to_thread(target.read_text, encoding="utf-8", errors="replace")
         new_content = _apply_unified_diff(content, patch)
         if new_content is None:
             return "错误: 补丁应用失败，无法匹配原始内容"
-        target.write_text(new_content, encoding="utf-8")
+        await asyncio.to_thread(target.write_text, new_content, encoding="utf-8")
         return f"补丁应用成功: {path}"
     except Exception as e:
         return f"应用补丁失败: {str(e)}"

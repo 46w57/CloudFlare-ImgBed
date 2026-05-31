@@ -57,7 +57,12 @@ async def auto_detect_credentials(request: AutoDetectRequest):
         return {"found": False, "message": "未检测到浏览器凭证，请手动导入或登录"}
 
     save_credential(result["platform"], result["token"], result.get("cookies", ""))
-    return {"found": True, "credential": result}
+    return {
+        "found": True,
+        "token": result.get("token", ""),
+        "cookies": result.get("cookies", ""),
+        "source": result.get("source", "auto_detect"),
+    }
 
 
 @router.post("/manual")

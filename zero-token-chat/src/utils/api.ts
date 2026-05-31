@@ -32,6 +32,7 @@ export interface ChatRequest {
   enableThinking?: boolean;
   expertMode?: boolean;
   chatSessionId?: string;
+  parentMessageId?: string;
   temperature?: number;
   maxTokens?: number;
   topP?: number;

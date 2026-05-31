@@ -65,7 +65,8 @@ export function useChat() {
           stream: true,
           enableSearch,
           enableThinking,
-          chatSessionId: (conv as any)?.chatSessionId,
+          chatSessionId: conv?.chatSessionId,
+          parentMessageId: conv?.parentMessageId,
           temperature: modelParams.temperature,
           maxTokens: modelParams.maxTokens,
           topP: modelParams.topP,
@@ -90,12 +91,14 @@ export function useChat() {
                   const info = JSON.parse(d.content as string);
                   sessionChatId = info.chat_session_id;
                   sessionParentId = info.parent_message_id;
-                  if (sessionChatId && convId) {
-                    const store = useChatStore.getState();
-                    const conv = store.conversations.find((c) => c.id === convId);
-                    if (conv) {
-                      (conv as any).chatSessionId = sessionChatId;
-                    }
+                  if (convId) {
+                    useChatStore.setState((s) => ({
+                      conversations: s.conversations.map((c) =>
+                        c.id === convId
+                          ? { ...c, chatSessionId: sessionChatId, parentMessageId: sessionParentId }
+                          : c
+                      ),
+                    }));
                   }
                 } catch { /* ignore */ }
               }

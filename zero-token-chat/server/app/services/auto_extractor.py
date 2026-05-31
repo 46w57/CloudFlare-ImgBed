@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from app.config import DEEPSEEK_BASE_URL, QWEN_BASE_URL, POLL_INTERVAL, POLL_MAX_DURATION
+from app.services.credential_store import save_credential
 
 _poll_tasks: dict = {}
 
@@ -192,6 +193,7 @@ async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
         cookies = await asyncio.to_thread(read_browser_cookies, domain)
 
         if token or cookies:
+            save_credential(platform, token or "", cookies or "")
             _poll_tasks[task_id]["status"] = "found"
             _poll_tasks[task_id]["result"] = {
                 "platform": platform,

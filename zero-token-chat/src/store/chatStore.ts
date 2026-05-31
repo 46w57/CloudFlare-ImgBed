@@ -34,6 +34,8 @@ export interface Conversation {
   platform: "deepseek" | "qwen";
   model: string;
   messages: Message[];
+  chatSessionId?: string;
+  parentMessageId?: string;
   createdAt: string;
   updatedAt: string;
 }
