@@ -26,12 +26,13 @@ async def _cleanup_task(task_id: str, delay: int = 60) -> None:
 def read_browser_cookies(domain: str) -> Optional[str]:
     try:
         import rookiepy
+        browser_names = ["chrome", "chromium", "edge", "brave", "firefox"]
         browser_funcs = []
-        for name in ["chrome", "edge", "firefox"]:
+        for name in browser_names:
             func = getattr(rookiepy, name, None)
             if func:
-                browser_funcs.append(func)
-        for browser_func in browser_funcs:
+                browser_funcs.append((name, func))
+        for browser_name, browser_func in browser_funcs:
             try:
                 cookies = browser_func([domain])
                 if not cookies:
@@ -51,7 +52,7 @@ def read_browser_cookies(domain: str) -> Optional[str]:
                             parts.append(f"{name}={value}")
                     return "; ".join(parts) if parts else None
             except Exception as e:
-                logger.debug("rookiepy %s failed: %s", browser_func.__name__, e)
+                logger.debug("rookiepy %s failed: %s", browser_name, e)
                 continue
         return None
     except ImportError:
@@ -118,30 +119,48 @@ def read_local_storage_token(domain: str) -> Optional[str]:
     leveldb_paths = []
 
     if os.name == "nt" or local_app:
-        chrome_win = Path(local_app) / "Google/Chrome/User Data/Default/Local Storage/leveldb"
-        edge_win = Path(local_app) / "Microsoft/Edge/User Data/Default/Local Storage/leveldb"
-        if chrome_win.exists():
-            leveldb_paths.append(chrome_win)
-        if edge_win.exists():
-            leveldb_paths.append(edge_win)
-        for profile_dir in ["Profile 1", "Profile 2", "Profile 3"]:
-            cp = Path(local_app) / f"Google/Chrome/User Data/{profile_dir}/Local Storage/leveldb"
-            ep = Path(local_app) / f"Microsoft/Edge/User Data/{profile_dir}/Local Storage/leveldb"
-            if cp.exists():
-                leveldb_paths.append(cp)
-            if ep.exists():
-                leveldb_paths.append(ep)
+        win_browsers = [
+            ("Google/Chrome", "Chrome"),
+            ("Microsoft/Edge", "Edge"),
+            ("BraveSoftware/Brave-Browser", "Brave"),
+            ("Chromium", "Chromium"),
+        ]
+        for browser_rel, _name in win_browsers:
+            base = Path(local_app) / browser_rel / "User Data"
+            default_ldb = base / "Default/Local Storage/leveldb"
+            if default_ldb.exists():
+                leveldb_paths.append(default_ldb)
+            for profile_dir in ["Profile 1", "Profile 2", "Profile 3"]:
+                p = base / f"{profile_dir}/Local Storage/leveldb"
+                if p.exists():
+                    leveldb_paths.append(p)
 
-    chrome_linux = home / ".config/google-chrome/Default/Local Storage/leveldb"
-    edge_linux = home / ".config/microsoft-edge/Default/Local Storage/leveldb"
-    if chrome_linux.exists():
-        leveldb_paths.append(chrome_linux)
-    if edge_linux.exists():
-        leveldb_paths.append(edge_linux)
+    linux_browsers = [
+        home / ".config/google-chrome",
+        home / ".config/chromium",
+        home / ".config/microsoft-edge",
+        home / ".config/BraveSoftware/Brave-Browser",
+    ]
+    for browser_base in linux_browsers:
+        default_ldb = browser_base / "Default/Local Storage/leveldb"
+        if default_ldb.exists():
+            leveldb_paths.append(default_ldb)
+        if browser_base.exists():
+            leveldb_paths.extend(_find_leveldb_dirs(browser_base))
 
-    for base in [home / ".config/google-chrome", home / ".config/microsoft-edge"]:
-        if base.exists():
-            leveldb_paths.extend(_find_leveldb_dirs(base))
+    mac_home = Path.home() / "Library/Application Support"
+    mac_browsers = [
+        mac_home / "Google/Chrome",
+        mac_home / "Chromium",
+        mac_home / "Microsoft Edge",
+        mac_home / "BraveSoftware/Brave-Browser",
+    ]
+    for browser_base in mac_browsers:
+        default_ldb = browser_base / "Default/Local Storage/leveldb"
+        if default_ldb.exists():
+            leveldb_paths.append(default_ldb)
+        if browser_base.exists():
+            leveldb_paths.extend(_find_leveldb_dirs(browser_base))
 
     for ldb_path in leveldb_paths:
         if not ldb_path.exists():

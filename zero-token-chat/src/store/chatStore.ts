@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { generateId } from "@/utils/api";
 
 export interface ToolCall {
   id: string;
@@ -62,7 +63,7 @@ export const useChatStore = create<ChatState>()(
       isStreaming: false,
 
       createConversation: (platform, model) => {
-        const id = crypto.randomUUID();
+        const id = generateId();
         const now = new Date().toISOString();
         const conversation: Conversation = {
           id,

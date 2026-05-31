@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useChatStore, type Message, type ToolCall, type SearchResult } from "@/store/chatStore";
 import { useSettingsStore } from "@/store/settingsStore";
-import { sendChatMessage } from "@/utils/api";
+import { sendChatMessage, generateId } from "@/utils/api";
 import { parseSSEStream } from "@/hooks/useStream";
 
 export function useChat() {
@@ -33,7 +33,7 @@ export function useChat() {
       }
 
       const userMessage: Message = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "user",
         content: content.trim(),
         createdAt: new Date().toISOString(),
@@ -41,7 +41,7 @@ export function useChat() {
       addMessage(convId, userMessage);
 
       const assistantMessage: Message = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         role: "assistant",
         content: "",
         thinkingContent: "",
@@ -125,7 +125,7 @@ export function useChat() {
               const d = event.data as { id?: string; name?: string; arguments?: string; content?: string };
               let toolName = d.name || "unknown";
               let toolArgs = d.arguments || "";
-              let toolId = d.id || crypto.randomUUID();
+              let toolId = d.id || generateId();
               if (d.content && !d.name) {
                 try {
                   const parsed = JSON.parse(d.content);
