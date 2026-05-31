@@ -31,6 +31,7 @@ def _build_payload(
     enable_thinking: bool = False,
     thinking_budget: int = 10000,
     stream: bool = True,
+    search_enabled: bool = False,
 ) -> dict:
     messages = []
     if chat_history:
@@ -44,12 +45,13 @@ def _build_payload(
     }
 
     if enable_thinking and model in THINKING_MODELS:
-        payload["extra_body"] = {
-            "enable_thinking": True,
-            "thinking_budget": thinking_budget,
-        }
         payload["enable_thinking"] = True
         payload["thinking_budget"] = thinking_budget
+
+    if search_enabled:
+        payload["search_enabled"] = True
+
+    payload["stream_options"] = {"include_usage": True}
 
     return payload
 
@@ -60,6 +62,7 @@ async def chat_stream(
     chat_history: Optional[list] = None,
     enable_thinking: bool = False,
     thinking_budget: int = 10000,
+    search_enabled: bool = False,
 ) -> AsyncGenerator[dict, None]:
     cred = load_credential("qwen")
     if not cred or not cred.get("token"):
@@ -68,7 +71,7 @@ async def chat_stream(
 
     token = cred["token"]
     headers = _get_auth_headers(token)
-    payload = _build_payload(message, model, chat_history, enable_thinking, thinking_budget)
+    payload = _build_payload(message, model, chat_history, enable_thinking, thinking_budget, search_enabled)
 
     async with httpx.AsyncClient(base_url=QWEN_BASE_URL, timeout=120) as client:
         try:

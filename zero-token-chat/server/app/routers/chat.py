@@ -70,6 +70,7 @@ async def _stream_chat(request: ChatRequest):
 
     if not user_message:
         yield f"data: {json.dumps({'type': 'error', 'content': '消息不能为空'}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'content': ''}, ensure_ascii=False)}\n\n"
         yield "data: [DONE]\n\n"
         return
 
@@ -96,6 +97,7 @@ async def _stream_chat(request: ChatRequest):
                 chat_history=chat_history,
                 enable_thinking=thinking_on,
                 thinking_budget=request.thinking_budget,
+                search_enabled=search_on,
             )
 
         tool_calls_found = []
@@ -170,6 +172,7 @@ async def _stream_chat(request: ChatRequest):
                 yield f"data: {json.dumps(result_event, ensure_ascii=False)}\n\n"
                 accumulated_content += f"\n\n工具 {tc_name} 的执行结果:\n{tc_result}"
 
+    yield f"data: {json.dumps({'type': 'done', 'content': ''}, ensure_ascii=False)}\n\n"
     yield "data: [DONE]\n\n"
 
 

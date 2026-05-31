@@ -49,7 +49,9 @@ async def _tool_exec(arguments: dict) -> str:
         cwd_path = TOOL_SANDBOX_DIR
     timeout = min(arguments.get("timeout", 30), 120)
     try:
-        result = subprocess.run(
+        import asyncio
+        result = await asyncio.to_thread(
+            subprocess.run,
             command,
             shell=True,
             capture_output=True,
