@@ -13,8 +13,13 @@ graph TB
         DS["DeepSeek 适配器"]
         QW["Qwen 适配器"]
         TOOL["工具执行引擎"]
-        SEARCH["搜索代理"]
+        AUTO["自动凭证提取器"]
         CRYPTO["加密存储"]
+    end
+
+    subgraph "浏览器存储"
+        CB["Chrome/Edge Cookie DB"]
+        LS["LocalStorage LevelDB"]
     end
 
     subgraph "外部服务"
@@ -28,8 +33,10 @@ graph TB
     API --> DS
     API --> QW
     API --> TOOL
-    API --> SEARCH
+    API --> AUTO
     API --> CRYPTO
+    AUTO --> CB
+    AUTO --> LS
     DS --> DSAPI
     QW --> QWAPI
 ```
@@ -39,6 +46,7 @@ graph TB
 - **前端**：React@18 + TypeScript + TailwindCSS@3 + Vite
 - **状态管理**：Zustand
 - **后端**：Python FastAPI + httpx（异步 HTTP 客户端）
+- **Cookie 自动提取**：rookiepy（读取浏览器 Cookie）+ 自定义 LevelDB 读取器（读取 localStorage）
 - **加密**：cryptography 库（AES-256-GCM）
 - **桌面端**：Tauri 2（Rust 后端 + WebView 前端）
 - **图标**：lucide-react
@@ -58,34 +66,59 @@ graph TB
 ### 4.1 Cookie 管理
 
 ```typescript
-interface CookieInfo {
+interface CredentialInfo {
   platform: "deepseek" | "qwen";
-  token: string;
-  status: "valid" | "expired" | "unknown";
+  hasToken: boolean;
+  hasCookies: boolean;
+  status: "valid" | "expired" | "unknown" | "empty";
   lastChecked: string;
-  expiresAt?: string;
 }
 
-// POST /api/cookies
-interface SaveCookieRequest {
+// POST /api/cookies/auto-detect
+interface AutoDetectRequest {
+  platform: "deepseek" | "qwen";
+}
+
+interface AutoDetectResponse {
+  found: boolean;
+  token?: string;
+  cookies?: Record<string, string>;
+}
+
+// POST /api/cookies/start-login
+interface StartLoginRequest {
+  platform: "deepseek" | "qwen";
+}
+
+interface StartLoginResponse {
+  taskId: string;
+  status: "polling";
+}
+
+// GET /api/cookies/poll/{taskId}
+interface PollResponse {
+  status: "polling" | "found" | "timeout" | "error";
+  token?: string;
+  cookies?: Record<string, string>;
+}
+
+// POST /api/cookies/manual
+interface ManualImportRequest {
   platform: "deepseek" | "qwen";
   token: string;
 }
 
 // GET /api/cookies
-interface GetCookiesResponse {
-  cookies: CookieInfo[];
+interface GetCredentialsResponse {
+  credentials: CredentialInfo[];
 }
 
-// POST /api/cookies/check
-interface CheckCookieRequest {
+// POST /api/cookies/validate
+interface ValidateRequest {
   platform: "deepseek" | "qwen";
 }
 
 // DELETE /api/cookies/{platform}
-interface DeleteCookieResponse {
-  success: boolean;
-}
 ```
 
 ### 4.2 聊天
@@ -134,46 +167,26 @@ interface ModelInfo {
 }
 ```
 
-### 4.4 工具执行
-
-```typescript
-interface ToolExecuteRequest {
-  tool: string;
-  args: Record<string, any>;
-}
-
-interface ToolExecuteResponse {
-  output: string;
-  success: boolean;
-  error?: string;
-}
-```
-
-### 4.5 打开浏览器
-
-```typescript
-// POST /api/browser/open
-interface OpenBrowserRequest {
-  platform: "deepseek" | "qwen";
-}
-```
-
 ## 5. 服务端架构图
 
 ```mermaid
 graph LR
     subgraph "FastAPI 应用"
-        R["路由层 (Router)"]
-        S["服务层 (Service)"]
-        A["适配层 (Adapter)"]
-        ST["存储层 (Storage)"]
+        R["路由层"]
+        S["服务层"]
+        A["适配层"]
+        AE["自动提取器"]
+        ST["存储层"]
     end
 
     R --> S
     S --> A
+    S --> AE
     S --> ST
-    A -->|"HTTP + Cookie"| DSAPI["chat.deepseek.com"]
+    A -->|"HTTP + Token"| DSAPI["chat.deepseek.com"]
     A -->|"HTTP + Token"| QWAPI["chat.qwen.ai"]
+    AE -->|"读取Cookie DB"| CB["Chrome/Edge Cookie DB"]
+    AE -->|"读取LevelDB"| LS["LocalStorage LevelDB"]
 ```
 
 ## 6. 数据模型
@@ -204,6 +217,7 @@ erDiagram
     CREDENTIAL {
         string platform PK
         string encryptedToken
+        string encryptedCookies
         string status
         datetime lastChecked
         datetime createdAt
@@ -217,45 +231,122 @@ erDiagram
 - 凭证数据：AES-256-GCM 加密存储在 `~/.zero-token-chat/credentials.enc`
 - 配置数据：JSON 文件存储在 `~/.zero-token-chat/config.json`
 
-## 7. DeepSeek 适配器设计
+## 7. 自动凭证提取器设计
 
-### 7.1 API 端点
+### 7.1 Cookie 自动读取（rookiepy）
 
-- 基础 URL：`https://chat.deepseek.com`
-- 聊天端点：`/api/v0/chat/completion`
-- 创建会话：`/api/v0/chat/create`
-- PoW 挑战：`/api/v0/chat/create_pow_challenge`
+```python
+# 使用 rookiepy 从浏览器读取 Cookie
+import rookiepy
 
-### 7.2 认证方式
+# 读取 Chrome 的 Cookie
+cookies = rookiepy.chrome(domains=["chat.deepseek.com"])
+# 返回格式: {"cookie_name": "cookie_value", ...}
+```
 
-- 请求头：`Authorization: Bearer {userToken}`
-- Cookie：包含 `intercom-device-id-dgkjq2bp` 等
-- PoW 响应头：`X-Ds-Pow-Response: {pow_response}`
+### 7.2 localStorage Token 自动读取
 
-### 7.3 专家模式
+**Chrome localStorage 存储位置（Windows）**：
+- `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Local Storage\leveldb\`
 
-- 请求参数中设置 `model: "deepseek-chat"` 并启用专家模式标志
-- 专家模式支持更长的上下文和更深入的推理
+**提取流程**：
+1. 定位 Chrome 用户配置目录
+2. 读取 LevelDB 文件
+3. 查找目标域名对应的 localStorage 条目
+4. 提取 `userToken`（DeepSeek）或 `token`（Qwen）
 
-## 8. Qwen 适配器设计
+### 7.3 轮询机制
+
+```python
+async def poll_for_credentials(platform: str, task_id: str):
+    """后台轮询检测浏览器凭证"""
+    max_attempts = 150  # 5分钟 / 2秒
+    for i in range(max_attempts):
+        # 1. 尝试从浏览器读取 Cookie
+        cookies = read_browser_cookies(platform)
+        # 2. 尝试从浏览器读取 localStorage Token
+        token = read_local_storage_token(platform)
+        # 3. 如果找到有效凭证，保存并通知
+        if token or cookies:
+            save_credentials(platform, token, cookies)
+            notify_frontend(task_id, "found", token, cookies)
+            return
+        await asyncio.sleep(2)
+    notify_frontend(task_id, "timeout")
+```
+
+## 8. DeepSeek 适配器设计
 
 ### 8.1 API 端点
 
-- 基础 URL：`https://chat.qwen.ai`
-- 聊天端点：`/api/chat/completions`
+- 基础 URL：`https://chat.deepseek.com`
+- 聊天端点：`/api/v0/chat/completion`（POST，SSE 流式）
+- 创建会话：`/api/v0/chat/create`（POST）
+- PoW 挑战：`/api/v0/chat/create_pow_challenge`（POST）
 
 ### 8.2 认证方式
 
+- 请求头：`Authorization: Bearer {userToken}`
+- Cookie：从浏览器自动提取的完整 Cookie 字符串
+- PoW 响应头：`X-Ds-Pow-Response: {pow_response}`
+
+### 8.3 专家模式
+
+- 在请求参数中设置 `model: "deepseek-chat"`
+- 启用专家模式相关参数
+
+### 8.4 请求格式
+
+```json
+{
+  "chat_session_id": "session-uuid",
+  "parent_message_id": "message-uuid",
+  "prompt": "用户消息",
+  "ref_file_id": "",
+  "thinking_enabled": true,
+  "search_enabled": false
+}
+```
+
+### 8.5 响应格式（SSE）
+
+```
+data: {"choices": [{"delta": {"content": "Hello"}}], "message_id": "xxx"}
+data: {"choices": [{"delta": {"content": " world"}}], "message_id": "xxx"}
+data: [DONE]
+```
+
+## 9. Qwen 适配器设计
+
+### 9.1 API 端点
+
+- 基础 URL：`https://chat.qwen.ai`
+- 聊天端点：`/api/chat/completions`（POST，SSE 流式）
+
+### 9.2 认证方式
+
 - 请求头：`Authorization: Bearer {token}`（token 来自 localStorage）
 
-### 8.3 思考模式
+### 9.3 思考模式
 
 - 请求参数中设置 `enable_thinking: true`
 - 可配置 `thinking_budget` 控制思考深度
 
-## 9. 工具调用设计
+### 9.4 请求格式
 
-### 9.1 支持的工具
+```json
+{
+  "model": "qwen3-235b-a22b",
+  "messages": [{"role": "user", "content": "Hello"}],
+  "stream": true,
+  "enable_thinking": true,
+  "thinking_budget": 2048
+}
+```
+
+## 10. 工具调用设计
+
+### 10.1 支持的工具
 
 | 工具名 | 功能 | 参数 |
 |--------|------|------|
@@ -265,14 +356,14 @@ erDiagram
 | `list_dir` | 列出目录内容 | `path: string` |
 | `apply_patch` | 应用代码补丁 | `path: string, patch: string` |
 
-### 9.2 工具调用实现
+### 10.2 工具调用实现
 
 - 在 system prompt 中注入 XML 格式的工具说明
 - 解析模型输出中的 `<tool_call>` 标记识别工具调用
 - 在本地沙箱中执行工具
 - 将执行结果返回给模型继续生成
 
-## 10. 项目目录结构
+## 11. 项目目录结构
 
 ```
 zero-token-chat/
@@ -291,7 +382,7 @@ zero-token-chat/
 │   │   │   └── ModelSelector.tsx
 │   │   ├── cookies/
 │   │   │   ├── CookieManager.tsx
-│   │   │   ├── CookieCard.tsx
+│   │   │   ├── CredentialCard.tsx
 │   │   │   └── ImportGuide.tsx
 │   │   └── settings/
 │   │       └── Settings.tsx
@@ -325,22 +416,14 @@ zero-token-chat/
 │   │   │   └── tools.py
 │   │   ├── services/
 │   │   │   ├── __init__.py
-│   │   │   ├── deepseek.py
-│   │   │   ├── qwen.py
+│   │   │   ├── deepseek_service.py
+│   │   │   ├── qwen_service.py
 │   │   │   ├── tool_executor.py
-│   │   │   └── credential_store.py
-│   │   ├── adapters/
-│   │   │   ├── __init__.py
-│   │   │   ├── deepseek_adapter.py
-│   │   │   └── qwen_adapter.py
+│   │   │   ├── credential_store.py
+│   │   │   └── auto_extractor.py
 │   │   └── config.py
 │   ├── requirements.txt
 │   └── start.py
-├── src-tauri/                    # Tauri 2 桌面端
-│   ├── src/
-│   │   └── main.rs
-│   ├── Cargo.toml
-│   └── tauri.conf.json
 ├── package.json
 ├── vite.config.ts
 ├── tailwind.config.js
