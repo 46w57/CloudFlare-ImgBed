@@ -50,7 +50,6 @@ async def _tool_exec(arguments: dict) -> str:
         cwd_path = TOOL_SANDBOX_DIR
     timeout = min(arguments.get("timeout", 30), 120)
     try:
-        import asyncio
         result = await asyncio.to_thread(
             subprocess.run,
             command,
@@ -193,7 +192,7 @@ def _apply_unified_diff(original: str, patch: str) -> Optional[str]:
     if not hunks:
         search = patch.strip()
         if search in original:
-            return original.replace(search, search, 1)
+            return original
         return None
     result_lines = list(lines)
     offset = 0

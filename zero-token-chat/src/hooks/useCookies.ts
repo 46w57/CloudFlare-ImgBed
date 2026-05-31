@@ -1,8 +1,6 @@
 import { useCallback } from "react";
 import { useCookieStore, type PollingStatus } from "@/store/cookieStore";
 import {
-  startLogin,
-  pollLogin,
   autoDetect,
   getCredentials,
 } from "@/utils/api";
@@ -37,61 +35,9 @@ export function useCookies() {
 
   const handleStartLogin = useCallback(
     async (platform: "deepseek" | "qwen") => {
-      try {
-        useCookieStore.setState((s) => ({
-          pollingStatus: { ...s.pollingStatus, [platform]: "polling" as PollingStatus },
-        }));
-        const data = await startLogin(platform);
-        const taskId = data.task_id || data.taskId;
-
-        const maxAttempts = 150;
-        let attempt = 0;
-
-        const poll = async () => {
-          if (attempt >= maxAttempts) {
-            useCookieStore.setState((s) => ({
-              pollingStatus: { ...s.pollingStatus, [platform]: "timeout" as PollingStatus },
-            }));
-            return;
-          }
-          attempt++;
-          try {
-            const result = await pollLogin(taskId);
-            if (result.status === "found") {
-              const cred: Record<string, unknown> = result.result || {};
-              useCookieStore.setState((s) => ({
-                pollingStatus: { ...s.pollingStatus, [platform]: "found" as PollingStatus },
-                credentials: {
-                  ...s.credentials,
-                  [platform]: {
-                    hasToken: !!cred.token,
-                    hasCookies: !!cred.cookies,
-                    status: "valid",
-                    lastChecked: new Date().toISOString(),
-                  },
-                },
-              }));
-              return;
-            }
-            if (result.status === "error") {
-              useCookieStore.setState((s) => ({
-                pollingStatus: { ...s.pollingStatus, [platform]: "error" as PollingStatus },
-              }));
-              return;
-            }
-            setTimeout(poll, 2000);
-          } catch {
-            setTimeout(poll, 2000);
-          }
-        };
-        poll();
-      } catch {
-        useCookieStore.setState((s) => ({
-          pollingStatus: { ...s.pollingStatus, [platform]: "error" as PollingStatus },
-        }));
-      }
+      await store.startLogin(platform);
     },
-    []
+    [store]
   );
 
   const handleAutoDetect = useCallback(

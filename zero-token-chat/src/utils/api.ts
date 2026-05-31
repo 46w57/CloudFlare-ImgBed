@@ -92,7 +92,8 @@ export async function autoDetect(platform: "deepseek" | "qwen") {
   return fetchAPI<{
     found: boolean;
     token?: string;
-    cookies?: Record<string, string>;
+    cookies?: string;
+    source?: string;
   }>("/cookies/auto-detect", {
     method: "POST",
     body: JSON.stringify({ platform }),

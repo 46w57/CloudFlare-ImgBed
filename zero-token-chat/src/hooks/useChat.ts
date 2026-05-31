@@ -16,7 +16,7 @@ export function useChat() {
     setIsStreaming,
   } = useChatStore();
 
-  const { modelParams, enableSearch, enableThinking } = useSettingsStore();
+  const { modelParams, enableSearch, enableThinking, selectedModel } = useSettingsStore();
 
   const currentConversation = conversations.find(
     (c) => c.id === currentConversationId
@@ -28,7 +28,8 @@ export function useChat() {
 
       let convId = currentConversationId;
       if (!convId) {
-        convId = createConversation("deepseek", "deepseek-chat");
+        const platform = selectedModel.startsWith("qwen") ? "qwen" as const : "deepseek" as const;
+        convId = createConversation(platform, selectedModel);
       }
 
       const userMessage: Message = {
@@ -196,6 +197,7 @@ export function useChat() {
       modelParams,
       enableSearch,
       enableThinking,
+      selectedModel,
     ]
   );
 

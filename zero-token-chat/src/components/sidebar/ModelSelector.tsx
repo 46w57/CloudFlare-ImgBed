@@ -3,6 +3,8 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/store/chatStore";
 
+import { useSettingsStore } from "@/store/settingsStore";
+
 interface ModelOption {
   id: string;
   name: string;
@@ -19,6 +21,7 @@ export default function ModelSelector() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { conversations, currentConversationId, createConversation } = useChatStore();
+  const setSelectedModel = useSettingsStore((s) => s.setSelectedModel);
   const currentConversation = conversations.find(
     (c) => c.id === currentConversationId
   );
@@ -40,6 +43,7 @@ export default function ModelSelector() {
   }, []);
 
   const handleSelect = (model: ModelOption) => {
+    setSelectedModel(model.id);
     createConversation(model.platform, model.id);
     setOpen(false);
   };

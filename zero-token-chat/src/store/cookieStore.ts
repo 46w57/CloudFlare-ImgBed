@@ -91,6 +91,12 @@ export const useCookieStore = create<CookieState>()((set, get) => ({
       if (!res.ok) throw new Error("启动登录失败");
       const data = await res.json();
       const taskId = (data.task_id || data.taskId) as string;
+      if (!taskId) {
+        set((s) => ({
+          pollingStatus: { ...s.pollingStatus, [platform]: "error" },
+        }));
+        return;
+      }
       set((s) => ({ taskId: { ...s.taskId, [platform]: taskId } }));
       get().pollStatus(platform, taskId);
     } catch {

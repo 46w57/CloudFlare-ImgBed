@@ -84,9 +84,9 @@ async def list_all_credentials():
     for platform, cred in store.items():
         result[platform] = {
             "platform": platform,
-            "has_token": bool(cred.get("token")),
-            "has_cookies": bool(cred.get("cookies")),
-            "token_preview": cred.get("token", "")[:8] + "..." if cred.get("token") else "",
+            "hasToken": bool(cred.get("token")),
+            "hasCookies": bool(cred.get("cookies")),
+            "tokenPreview": cred.get("token", "")[:8] + "..." if cred.get("token") else "",
         }
     return result
 

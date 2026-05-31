@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
     chat_session_id: Optional[str] = None
     chatSessionId: Optional[str] = None
     parent_message_id: Optional[str] = None
+    parentMessageId: Optional[str] = None
     thinking_enabled: bool = True
     search_enabled: bool = False
     enableSearch: bool = False
@@ -67,6 +68,7 @@ async def _stream_chat(request: ChatRequest):
     user_message = _extract_message(request)
     chat_history = _extract_chat_history(request)
     chat_session_id = request.chat_session_id or request.chatSessionId
+    parent_message_id = request.parent_message_id or request.parentMessageId
 
     if not user_message:
         yield f"data: {json.dumps({'type': 'error', 'content': '消息不能为空'}, ensure_ascii=False)}\n\n"
@@ -86,7 +88,7 @@ async def _stream_chat(request: ChatRequest):
                 message=user_message if tool_round == 0 else accumulated_content,
                 model=request.model,
                 chat_session_id=chat_session_id,
-                parent_message_id=request.parent_message_id,
+                parent_message_id=parent_message_id,
                 thinking_enabled=thinking_on,
                 search_enabled=search_on,
             )
@@ -113,6 +115,8 @@ async def _stream_chat(request: ChatRequest):
                     info = json.loads(event_content) if event_content else {}
                     if info.get("chat_session_id"):
                         chat_session_id = info["chat_session_id"]
+                    if info.get("parent_message_id"):
+                        parent_message_id = info["parent_message_id"]
                 except json.JSONDecodeError:
                     pass
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"

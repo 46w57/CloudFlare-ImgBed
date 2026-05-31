@@ -5,6 +5,15 @@ import { useChatStore } from "@/store/chatStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useChat } from "@/hooks/useChat";
 
+const MODEL_LABELS: Record<string, string> = {
+  "deepseek-chat": "DeepSeek V4 Pro",
+  "deepseek-reasoner": "DeepSeek Reasoner",
+  "qwen3-max": "Qwen3 Max",
+  "qwen3-235b-a22b": "Qwen3.7 Max",
+  "qwen-plus": "Qwen Plus",
+  "qwen-turbo": "Qwen Turbo",
+};
+
 export default function InputArea() {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -48,10 +57,8 @@ export default function InputArea() {
   }, [isStreaming, input, handleSend]);
 
   const modelLabel = currentConversation
-    ? currentConversation.platform === "deepseek"
-      ? "DeepSeek V4 Pro"
-      : "Qwen3.7 Max"
-    : "DeepSeek V4 Pro";
+    ? MODEL_LABELS[currentConversation.model] || currentConversation.model
+    : MODEL_LABELS["deepseek-chat"]!;
 
   return (
     <div className="border-t border-[var(--border)] bg-[var(--bg)] px-4 pb-4 pt-3">
