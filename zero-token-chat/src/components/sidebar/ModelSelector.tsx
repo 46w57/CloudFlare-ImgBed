@@ -14,7 +14,11 @@ interface ModelOption {
 
 const MODEL_OPTIONS: ModelOption[] = [
   { id: "deepseek-chat", name: "DeepSeek V4 Pro", platform: "deepseek", icon: "🟢" },
+  { id: "deepseek-reasoner", name: "DeepSeek Reasoner", platform: "deepseek", icon: "🟢" },
   { id: "qwen3-235b-a22b", name: "Qwen3.7 Max", platform: "qwen", icon: "🟣" },
+  { id: "qwen3-max", name: "Qwen3 Max", platform: "qwen", icon: "🟣" },
+  { id: "qwen-plus", name: "Qwen Plus", platform: "qwen", icon: "🟣" },
+  { id: "qwen-turbo", name: "Qwen Turbo", platform: "qwen", icon: "🟣" },
 ];
 
 export default function ModelSelector() {

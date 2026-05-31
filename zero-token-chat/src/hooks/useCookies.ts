@@ -6,29 +6,8 @@ export function useCookies() {
   const store = useCookieStore();
 
   const refreshCredentials = useCallback(async () => {
-    try {
-      const res = await fetch("/api/cookies");
-      if (!res.ok) throw new Error("获取凭证失败");
-      const data = await res.json();
-      useCookieStore.setState((s) => {
-        const newCreds = { ...s.credentials };
-        for (const platform of ["deepseek", "qwen"] as const) {
-          const c = data[platform];
-          if (c) {
-            newCreds[platform] = {
-              hasToken: c.hasToken ?? false,
-              hasCookies: c.hasCookies ?? false,
-              status: c.hasToken ? "valid" : "empty",
-              lastChecked: new Date().toISOString(),
-            };
-          }
-        }
-        return { credentials: newCreds };
-      });
-    } catch {
-      console.error("刷新凭证失败");
-    }
-  }, []);
+    await store.fetchCredentials();
+  }, [store]);
 
   const handleStartLogin = useCallback(
     async (platform: "deepseek" | "qwen") => {

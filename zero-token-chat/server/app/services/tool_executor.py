@@ -129,11 +129,16 @@ async def _tool_list_dir(arguments: dict) -> str:
     if not target.is_dir():
         return f"错误: 不是目录: {path}"
     try:
+        raw_entries = await asyncio.to_thread(lambda t=target: list(t.iterdir()))
         entries = []
-        for item in sorted(await asyncio.to_thread(lambda: list(target.iterdir()))):
-            prefix = "DIR " if item.is_dir() else "FILE "
+        for item in sorted(raw_entries):
+            try:
+                is_dir = item.is_dir()
+            except OSError:
+                is_dir = False
+            prefix = "DIR " if is_dir else "FILE "
             size = ""
-            if item.is_file():
+            if not is_dir:
                 try:
                     size = f" ({item.stat().st_size} bytes)"
                 except Exception:

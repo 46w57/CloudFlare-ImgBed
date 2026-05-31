@@ -12,11 +12,9 @@ async def list_models():
         models.append({
             "id": model_id,
             "platform": info["platform"],
-            "display_name": info["display_name"],
-            "capabilities": {
-                "thinking": info.get("thinking", False),
-                "search": info.get("search", False),
-                "tools": info.get("tools", False),
-            },
+            "name": info["display_name"],
+            "supportsThinking": info.get("thinking", False),
+            "supportsSearch": info.get("search", False),
+            "supportsTools": info.get("tools", False),
         })
     return {"models": models}

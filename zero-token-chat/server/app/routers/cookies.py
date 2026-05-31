@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.services.credential_store import save_credential, load_credential, delete_credential, list_credentials
 from app.services.auto_extractor import start_login_poll, get_poll_status, auto_detect
+from app.config import CREDENTIALS_FILE
 
 router = APIRouter(prefix="/api/cookies", tags=["cookies"])
 
@@ -87,7 +88,16 @@ async def list_all_credentials():
             "hasToken": bool(cred.get("token")),
             "hasCookies": bool(cred.get("cookies")),
             "tokenPreview": cred.get("token", "")[:8] + "..." if cred.get("token") else "",
+            "lastChecked": "",
         }
+    try:
+        mtime = CREDENTIALS_FILE.stat().st_mtime
+        from datetime import datetime
+        last_checked = datetime.fromtimestamp(mtime).isoformat()
+        for platform in result:
+            result[platform]["lastChecked"] = last_checked
+    except Exception:
+        pass
     return result
 
 
