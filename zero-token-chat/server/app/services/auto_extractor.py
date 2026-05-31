@@ -206,12 +206,12 @@ async def _poll_loop(task_id: str, platform: str, domain: str) -> None:
                 "cookies": cookies or "",
                 "source": "login_poll",
             }
-            _cleanup_task(task_id, delay=60)
+            asyncio.create_task(_cleanup_task(task_id, delay=60))
             return
 
     _poll_tasks[task_id]["status"] = "timeout"
     _poll_tasks[task_id]["result"] = None
-    _cleanup_task(task_id, delay=60)
+    asyncio.create_task(_cleanup_task(task_id, delay=60))
 
 
 def get_poll_status(task_id: str) -> Optional[dict]:
