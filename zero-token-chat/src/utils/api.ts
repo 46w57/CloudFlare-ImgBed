@@ -2,11 +2,12 @@ const API_BASE = "/api";
 
 async function fetchAPI<T>(
   path: string,
-  options?: RequestInit
+  options?: RequestInit & { signal?: AbortSignal }
 ): Promise<T> {
   const url = `${API_BASE}${path}`;
   const res = await fetch(url, {
     ...options,
+    signal: options?.signal,
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
@@ -88,7 +89,10 @@ export async function pollLogin(taskId: string) {
   }>(`/cookies/poll/${taskId}`);
 }
 
-export async function autoDetect(platform: "deepseek" | "qwen") {
+export async function autoDetect(
+  platform: "deepseek" | "qwen",
+  signal?: AbortSignal
+) {
   return fetchAPI<{
     found: boolean;
     token?: string;
@@ -97,6 +101,7 @@ export async function autoDetect(platform: "deepseek" | "qwen") {
   }>("/cookies/auto-detect", {
     method: "POST",
     body: JSON.stringify({ platform }),
+    signal,
   });
 }
 

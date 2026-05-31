@@ -60,72 +60,55 @@ export default function InputArea() {
     ? MODEL_LABELS[currentConversation.model] || currentConversation.model
     : MODEL_LABELS["deepseek-chat"]!;
 
+  const canSend = !isStreaming && input.trim().length > 0;
+
   return (
-    <div className="border-t border-[var(--border)] bg-[var(--bg)] px-4 pb-4 pt-3">
+    <div className="border-t border-[var(--border-default)] bg-[var(--bg-elevated)] backdrop-blur-xl px-4 pb-5 pt-3">
       <div className="mx-auto max-w-3xl">
-        <div className="flex items-center gap-2 mb-2 text-xs text-[var(--text-secondary)]">
-          <span className="rounded bg-[var(--card)] border border-[var(--border)] px-2 py-0.5 font-mono">
-            {modelLabel}
-          </span>
-        </div>
         <div
           className={cn(
-            "flex items-end gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2",
-            "focus-within:border-[var(--blue)] focus-within:ring-1 focus-within:ring-[var(--blue)]",
-            "transition-all duration-200"
+            "relative flex items-end gap-2 rounded-2xl border bg-[var(--card-bg)] px-4 py-3 transition-all duration-200",
+            "backdrop-blur-xl shadow-md",
+            "border-[var(--card-border)]",
+            "focus-within:border-[var(--accent)] focus-within:shadow-lg focus-within:shadow-[var(--accent-glow)]"
           )}
+          style={{
+            boxShadow: "var(--shadow-sm), var(--shadow-glow)",
+          }}
         >
-          <div className="flex items-center gap-1 self-end pb-0.5">
-            <button
-              onClick={() => setEnableSearch(!enableSearch)}
-              className={cn(
-                "rounded-lg p-1.5 transition-colors",
-                enableSearch
-                  ? "bg-[var(--blue)]/20 text-[var(--blue)]"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--border)]"
-              )}
-              title="网页搜索"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setEnableThinking(!enableThinking)}
-              className={cn(
-                "rounded-lg p-1.5 transition-colors",
-                enableThinking
-                  ? "bg-purple-500/20 text-purple-400"
-                  : "text-[var(--text-secondary)] hover:bg-[var(--border)]"
-              )}
-              title="深度思考"
-            >
-              <Brain className="h-4 w-4" />
-            </button>
-          </div>
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"
+            placeholder="输入消息..."
             rows={1}
             disabled={isStreaming}
             className={cn(
-              "flex-1 resize-none bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-secondary)]",
+              "flex-1 resize-none bg-transparent text-sm leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)]",
               "focus:outline-none disabled:opacity-50",
-              "max-h-[200px]"
+              "max-h-[200px] py-1"
             )}
           />
           <button
             onClick={isStreaming ? undefined : handleSendClick}
-            disabled={isStreaming || !input.trim()}
+            disabled={!canSend}
             className={cn(
-              "rounded-lg p-2 transition-all duration-200",
-              isStreaming
-                ? "text-[var(--red)] hover:bg-[var(--red)]/10"
-                : input.trim()
-                ? "bg-[var(--blue)] text-white hover:opacity-90"
-                : "text-[var(--text-secondary)]"
+              "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+              canSend
+                ? "text-white cursor-pointer"
+                : "cursor-not-allowed opacity-30"
             )}
+            style={
+              canSend
+                ? {
+                    background: "linear-gradient(135deg, var(--accent), #0ea5e9)",
+                    boxShadow: "0 0 12px var(--accent-glow)",
+                  }
+                : {
+                    background: "var(--bg-tertiary)",
+                  }
+            }
             title={isStreaming ? "生成中..." : "发送"}
           >
             {isStreaming ? (
@@ -135,9 +118,46 @@ export default function InputArea() {
             )}
           </button>
         </div>
-        <p className="mt-1.5 text-center text-xs text-[var(--text-secondary)]">
-          Zero Token Chat · 免费使用 AI 大模型
-        </p>
+
+        <div className="mt-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-tertiary)] px-2.5 py-0.5 text-[11px] font-medium font-mono text-[var(--text-secondary)]"
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--emerald)]" />
+              {modelLabel}
+            </span>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => setEnableSearch(!enableSearch)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-150",
+                  enableSearch
+                    ? "text-[var(--accent)] bg-[var(--accent-muted)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+                )}
+                title="网页搜索"
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setEnableThinking(!enableThinking)}
+                className={cn(
+                  "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-150",
+                  enableThinking
+                    ? "text-[var(--amber)] bg-[var(--amber-muted)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
+                )}
+                title="深度思考"
+              >
+                <Brain className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+          <span className="text-[10px] text-[var(--text-muted)]">
+            Shift+Enter 换行
+          </span>
+        </div>
       </div>
     </div>
   );

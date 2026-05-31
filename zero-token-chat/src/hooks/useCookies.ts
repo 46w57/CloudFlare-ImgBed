@@ -19,11 +19,13 @@ export function useCookies() {
 
   const handleAutoDetect = useCallback(
     async (platform: "deepseek" | "qwen") => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15_000);
       try {
         useCookieStore.setState((s) => ({
           pollingStatus: { ...s.pollingStatus, [platform]: "polling" as PollingStatus },
         }));
-        const result = await autoDetect(platform);
+        const result = await autoDetect(platform, controller.signal);
         if (result.found) {
           useCookieStore.setState((s) => ({
             pollingStatus: { ...s.pollingStatus, [platform]: "found" as PollingStatus },
@@ -42,10 +44,20 @@ export function useCookies() {
             pollingStatus: { ...s.pollingStatus, [platform]: "timeout" as PollingStatus },
           }));
         }
-      } catch {
+      } catch (err) {
+        const isTimeout = err instanceof DOMException && err.name === "AbortError";
+        const message = isTimeout
+          ? `自动检测 ${platform} 超时（15秒），浏览器 cookie 读取可能被阻塞，请尝试手动导入`
+          : `自动检测 ${platform} 失败: ${err instanceof Error ? err.message : "未知错误"}`;
+        console.warn(`[autoDetect] ${message}`, err);
         useCookieStore.setState((s) => ({
-          pollingStatus: { ...s.pollingStatus, [platform]: "error" as PollingStatus },
+          pollingStatus: {
+            ...s.pollingStatus,
+            [platform]: "error" as PollingStatus,
+          },
         }));
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     []

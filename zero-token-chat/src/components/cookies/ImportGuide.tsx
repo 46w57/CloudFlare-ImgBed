@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
+import { ChevronDown, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ImportGuide() {
   const [expanded, setExpanded] = useState(false);
 
-  const steps = [
+  const sections = [
     {
       title: "一键登录（推荐）",
       items: [
@@ -31,49 +31,80 @@ export default function ImportGuide() {
   ];
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+    <div className="card-glass overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className={cn(
-          "flex w-full items-center gap-2 px-4 py-3 text-sm transition-colors",
-          "hover:bg-[var(--border)] text-[var(--text-secondary)]"
-        )}
+        className="group flex w-full items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--accent-muted)]"
       >
-        {expanded ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
-        ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
-        )}
-        <HelpCircle className="h-4 w-4 shrink-0 text-[var(--blue)]" />
-        <span className="font-medium">导入引导</span>
+        <div
+          className={cn(
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors duration-200",
+            expanded
+              ? "bg-[var(--accent)] text-white"
+              : "bg-[var(--accent-muted)] text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-white"
+          )}
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+        </div>
+        <span className="text-sm font-medium text-[var(--text-primary)]">
+          导入引导
+        </span>
+        <ChevronDown
+          className={cn(
+            "ml-auto h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform duration-200",
+            expanded && "rotate-180"
+          )}
+        />
       </button>
+
       <div
         className={cn(
-          "overflow-hidden transition-all duration-300 ease-in-out",
-          expanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          "grid transition-[grid-template-rows] duration-300 ease-in-out",
+          expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}
       >
-        <div className="border-t border-[var(--border)] px-4 py-3 space-y-4">
-          {steps.map((step, idx) => (
-            <div key={idx}>
-              <h4 className="mb-2 text-sm font-medium text-[var(--text)]">
-                {idx + 1}. {step.title}
-              </h4>
-              <ol className="space-y-1.5 pl-4">
-                {step.items.map((item, i) => (
-                  <li
-                    key={i}
-                    className="text-xs text-[var(--text-secondary)] leading-relaxed"
+        <div className="overflow-hidden">
+          <div className="border-t border-[var(--border-default)] px-4 py-4 space-y-5">
+            {sections.map((section, sectionIdx) => (
+              <div key={sectionIdx}>
+                <div className="mb-3 flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold",
+                      sectionIdx === 0
+                        ? "bg-[var(--emerald-muted)] text-[var(--emerald)]"
+                        : "bg-[var(--amber-muted)] text-[var(--amber)]"
+                    )}
                   >
-                    <span className="mr-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--border)] text-[10px] font-medium text-[var(--text-secondary)]">
-                      {i + 1}
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
+                    {sectionIdx + 1}
+                  </span>
+                  <h4 className="text-sm font-semibold text-[var(--text-primary)]">
+                    {section.title}
+                  </h4>
+                </div>
+                <ol className="space-y-2 pl-8">
+                  {section.items.map((item, i) => (
+                    <li
+                      key={i}
+                      className="group/item flex items-start gap-2.5 text-xs leading-relaxed text-[var(--text-secondary)]"
+                    >
+                      <span
+                        className={cn(
+                          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold transition-colors",
+                          sectionIdx === 0
+                            ? "bg-[var(--bg-tertiary)] text-[var(--emerald)] group-hover/item:bg-[var(--emerald-muted)]"
+                            : "bg-[var(--bg-tertiary)] text-[var(--amber)] group-hover/item:bg-[var(--amber-muted)]"
+                        )}
+                      >
+                        {i + 1}
+                      </span>
+                      <span className="pt-0.5">{item}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

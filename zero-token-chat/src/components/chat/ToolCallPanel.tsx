@@ -7,6 +7,33 @@ interface ToolCallPanelProps {
   toolCalls: ToolCall[];
 }
 
+const STATUS_CONFIG = {
+  running: {
+    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
+    text: "执行中",
+    borderColor: "var(--amber)",
+    bgMuted: "var(--amber-muted)",
+    textColor: "var(--amber)",
+    badgeClass: "animate-pulse-soft",
+  },
+  success: {
+    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+    text: "成功",
+    borderColor: "var(--emerald)",
+    bgMuted: "var(--emerald-muted)",
+    textColor: "var(--emerald)",
+    badgeClass: "",
+  },
+  error: {
+    icon: <XCircle className="h-3.5 w-3.5" />,
+    text: "失败",
+    borderColor: "var(--rose)",
+    bgMuted: "var(--rose-muted)",
+    textColor: "var(--rose)",
+    badgeClass: "",
+  },
+};
+
 export default function ToolCallPanel({ toolCalls }: ToolCallPanelProps) {
   if (!toolCalls || toolCalls.length === 0) return null;
 
@@ -21,59 +48,97 @@ export default function ToolCallPanel({ toolCalls }: ToolCallPanelProps) {
 
 function ToolCallItem({ toolCall }: { toolCall: ToolCall }) {
   const [expanded, setExpanded] = useState(false);
-
-  const statusIcon = {
-    running: <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />,
-    success: <CheckCircle2 className="h-4 w-4 text-[var(--green)]" />,
-    error: <XCircle className="h-4 w-4 text-[var(--red)]" />,
-  };
-
-  const statusText = {
-    running: "执行中",
-    success: "成功",
-    error: "失败",
-  };
+  const config = STATUS_CONFIG[toolCall.status];
 
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+    <div
+      className={cn(
+        "overflow-hidden rounded-xl border-l-[3px] bg-[var(--card-bg)] backdrop-blur-sm shadow-sm transition-all duration-200",
+        "hover:shadow-md"
+      )}
+      style={{
+        borderLeftColor: config.borderColor,
+        borderColor: `transparent transparent transparent ${config.borderColor}`,
+      }}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className={cn(
-          "flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors",
-          "hover:bg-[var(--border)] text-[var(--text-secondary)]"
+          "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors duration-200",
         )}
+        style={{ "--hover-bg": config.bgMuted } as React.CSSProperties}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = `${config.bgMuted}/30`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+        }}
       >
         {expanded ? (
-          <ChevronDown className="h-4 w-4 shrink-0" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
         ) : (
-          <ChevronRight className="h-4 w-4 shrink-0" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
         )}
-        <Wrench className="h-4 w-4 shrink-0 text-orange-400" />
-        <span className="font-medium font-mono">{toolCall.name}</span>
-        <span className="ml-auto flex items-center gap-1.5">
-          {statusIcon[toolCall.status]}
-          <span className="text-xs">{statusText[toolCall.status]}</span>
+        <Wrench className="h-4 w-4 shrink-0" style={{ color: config.textColor }} />
+        <span className="font-mono font-medium text-sm text-[var(--text-primary)] truncate max-w-[180px]">
+          {toolCall.name}
+        </span>
+        <span
+          className={cn(
+            "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+            config.badgeClass
+          )}
+          style={{
+            background: `${config.bgMuted}`,
+            color: config.textColor,
+            boxShadow: toolCall.status === "running"
+              ? `0 0 8px ${config.bgMuted}`
+              : undefined,
+          }}
+        >
+          <span style={{ color: config.textColor }}>{config.icon}</span>
+          {config.text}
         </span>
       </button>
+
       <div
         className={cn(
           "overflow-hidden transition-all duration-300 ease-in-out",
           expanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="border-t border-[var(--border)] px-4 py-3 space-y-2">
+        <div
+          className="border-t border-[var(--border-subtle)] px-4 py-3 space-y-3"
+          style={{
+            background: `linear-gradient(180deg, ${config.bgMuted}/15 0%, transparent 100%)`,
+          }}
+        >
           {toolCall.arguments && (
             <div>
-              <div className="mb-1 text-xs font-medium text-[var(--text-secondary)]">参数</div>
-              <pre className="rounded bg-[var(--bg)] p-2 text-xs font-mono text-[var(--text)] overflow-x-auto">
-                {toolCall.arguments}
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  输入参数
+                </span>
+              </div>
+              <pre
+                className="overflow-x-auto rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-xs font-mono leading-relaxed text-[var(--text-secondary)]"
+              >
+                {typeof toolCall.arguments === "string"
+                  ? toolCall.arguments
+                  : JSON.stringify(toolCall.arguments, null, 2)}
               </pre>
             </div>
           )}
           {toolCall.result && (
             <div>
-              <div className="mb-1 text-xs font-medium text-[var(--text-secondary)]">结果</div>
-              <pre className="rounded bg-[var(--bg)] p-2 text-xs font-mono text-[var(--text)] overflow-x-auto whitespace-pre-wrap">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  返回结果
+                </span>
+              </div>
+              <pre
+                className="overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3 text-xs font-mono leading-relaxed text-[var(--text-secondary)]"
+              >
                 {toolCall.result}
               </pre>
             </div>
