@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from app.api.routes import chat, cookies, providers, system
+from app.api.routes import chat, cookies, providers, system, onboard
 from app.core.config import get_settings
 
 
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(providers.router, prefix="/api")
     app.include_router(cookies.router, prefix="/api")
     app.include_router(chat.router, prefix="/api")
+    app.include_router(onboard.router, prefix="/api")
     return app
 
 

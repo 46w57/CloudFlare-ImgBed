@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Check, X, RefreshCw, Trash2, ExternalLink, Shield, AlertCircle, Loader2 } from 'lucide-react';
+import { Check, X, RefreshCw, Trash2, ExternalLink, Shield, AlertCircle, Loader2, KeyRound, Download } from 'lucide-react';
 import clsx from 'clsx';
 import { useSettings } from '@/stores/settings';
 import { api, openExternal } from '@/lib/api';
 import type { ProviderStatus } from '@/lib/types';
 
 export function SettingsPage() {
-  const { providers, refreshStatus, loadProviders } = useSettings();
+  const { providers, loadProviders } = useSettings();
   const [statuses, setStatuses] = useState<Record<string, ProviderStatus>>({});
   const [validating, setValidating] = useState<Record<string, boolean>>({});
+  const [onboarding, setOnboarding] = useState<Record<string, 'launching' | 'waiting' | 'capturing' | null>>({});
   const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [showManual, setShowManual] = useState<Record<string, boolean>>({});
+  const [manualJson, setManualJson] = useState<Record<string, string>>({});
 
   useEffect(() => {
     void loadProviders();
@@ -57,6 +60,62 @@ export function SettingsPage() {
     }
   };
 
+  const startOnboard = async (name: string) => {
+    setOnboarding((s) => ({ ...s, [name]: 'launching' }));
+    try {
+      await api('/api/onboard/start', {
+        method: 'POST',
+        body: JSON.stringify({ provider: name, no_launch: false, timeout: 300 }),
+      });
+      setOnboarding((s) => ({ ...s, [name]: 'waiting' }));
+      setMessage({ kind: 'ok', text: `Chrome 已启动，请在浏览器里登录 ${name}。登录完成后点击「立即抓取」` });
+    } catch (e: any) {
+      setMessage({ kind: 'err', text: e?.message || String(e) });
+      setOnboarding((s) => ({ ...s, [name]: null }));
+    }
+  };
+
+  const captureNow = async (name: string) => {
+    setOnboarding((s) => ({ ...s, [name]: 'capturing' }));
+    try {
+      const r = await api<{ ok: boolean; cookie_count: number; healthy: boolean }>(
+        '/api/onboard/capture',
+        { method: 'POST', body: JSON.stringify({ provider: name, port: 9222 }) }
+      );
+      if (r.ok) {
+        setMessage({
+          kind: r.healthy ? 'ok' : 'err',
+          text: r.healthy
+            ? `✓ ${name} 抓取并验证通过 (${r.cookie_count} 个 cookies)`
+            : `⚠ ${name} 抓取成功 (${r.cookie_count} 个 cookies) 但验证未通过，cookie 可能不完整`,
+        });
+      }
+      setOnboarding((s) => ({ ...s, [name]: null }));
+      await loadStatuses();
+    } catch (e: any) {
+      setMessage({ kind: 'err', text: e?.message || String(e) });
+      setOnboarding((s) => ({ ...s, [name]: null }));
+    }
+  };
+
+  const submitManual = async (name: string) => {
+    try {
+      const payload = JSON.parse(manualJson[name] || '{}');
+      if (!Array.isArray(payload.cookies)) {
+        throw new Error('JSON 必须包含 cookies 数组');
+      }
+      await api('/api/cookies/import', {
+        method: 'POST',
+        body: JSON.stringify({ provider: name, ...payload }),
+      });
+      setMessage({ kind: 'ok', text: '手动导入成功' });
+      setShowManual((s) => ({ ...s, [name]: false }));
+      await loadStatuses();
+    } catch (e: any) {
+      setMessage({ kind: 'err', text: `导入失败: ${e?.message || e}` });
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
       {message && (
@@ -83,6 +142,7 @@ export function SettingsPage() {
         <div className="space-y-2">
           {providers.map((p) => {
             const s = statuses[p.name];
+            const ob = onboarding[p.name];
             return (
               <div
                 key={p.name}
@@ -119,30 +179,83 @@ export function SettingsPage() {
                     {s.user_id && <div>用户: {s.user_id}</div>}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-2">
+
+                {/* 操作按钮组 */}
+                <div className="flex flex-wrap gap-1.5">
+                  {ob !== 'waiting' && ob !== 'launching' && (
+                    <button
+                      onClick={() => startOnboard(p.name)}
+                      className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded bg-accent/15 text-accent hover:bg-accent/25"
+                    >
+                      <KeyRound className="w-3 h-3" /> 一键登录
+                    </button>
+                  )}
+                  {ob === 'launching' && (
+                    <button disabled className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded bg-bg-panel text-text-muted">
+                      <Loader2 className="w-3 h-3 animate-spin" /> 启动 Chrome...
+                    </button>
+                  )}
+                  {ob === 'waiting' && (
+                    <button
+                      onClick={() => captureNow(p.name)}
+                      className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 animate-pulse-soft"
+                    >
+                      <Download className="w-3 h-3" /> 立即抓取 Cookie
+                    </button>
+                  )}
+                  {ob === 'capturing' && (
+                    <button disabled className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded bg-bg-panel text-text-muted">
+                      <Loader2 className="w-3 h-3 animate-spin" /> 抓取中...
+                    </button>
+                  )}
                   <button
                     onClick={() => openExternal(p.name === 'deepseek' ? 'https://chat.deepseek.com' : 'https://chat.qwen.ai')}
                     className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded border border-line hover:bg-bg-hover"
                   >
                     <ExternalLink className="w-3 h-3" /> 打开官网
                   </button>
-                  <button
-                    onClick={() => validate(p.name)}
-                    disabled={validating[p.name] || !s?.configured}
-                    className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded border border-line hover:bg-bg-hover disabled:opacity-40"
-                  >
-                    {validating[p.name] ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                    验证
-                  </button>
                   {s?.configured && (
-                    <button
-                      onClick={() => remove(p.name)}
-                      className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10"
-                    >
-                      <Trash2 className="w-3 h-3" /> 删除
-                    </button>
+                    <>
+                      <button
+                        onClick={() => validate(p.name)}
+                        disabled={validating[p.name]}
+                        className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded border border-line hover:bg-bg-hover disabled:opacity-40"
+                      >
+                        {validating[p.name] ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                        验证
+                      </button>
+                      <button
+                        onClick={() => remove(p.name)}
+                        className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded border border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="w-3 h-3" /> 删除
+                      </button>
+                    </>
                   )}
+                  <button
+                    onClick={() => setShowManual((m) => ({ ...m, [p.name]: !m[p.name] }))}
+                    className="flex items-center gap-1 text-[12px] px-2.5 py-1 rounded text-text-muted hover:text-text-primary"
+                  >
+                    手动导入 JSON
+                  </button>
                 </div>
+
+                {showManual[p.name] && (
+                  <div className="mt-2 space-y-1.5">
+                    <textarea
+                      className="w-full h-32 bg-bg-panel border border-line rounded p-2 font-mono text-[11px]"
+                      placeholder='{"cookies": [{"name": "...", "value": "...", "domain": ".deepseek.com"}], "headers": {}}'
+                      value={manualJson[p.name] || ''}
+                      onChange={(e) => setManualJson((m) => ({ ...m, [p.name]: e.target.value }))}
+                    />
+                    <button
+                      onClick={() => submitManual(p.name)}
+                      className="text-[12px] px-2.5 py-1 rounded bg-accent/15 text-accent hover:bg-accent/25"
+                    >
+                      提交
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -150,18 +263,13 @@ export function SettingsPage() {
       </section>
 
       <section>
-        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-          首次配置步骤
-        </h3>
+        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">使用流程</h3>
         <ol className="text-[12px] text-text-secondary space-y-1.5 list-decimal pl-4 leading-relaxed">
-          <li>在 PowerShell / 终端运行：
-            <code className="block mt-1 px-2 py-1 bg-bg-subtle border border-line rounded font-mono text-[11px]">
-              cd backend &amp;&amp; python -m scripts.bootstrap_chrome --provider deepseek
-            </code>
-          </li>
-          <li>弹出的 Chrome 窗口里登录 DeepSeek / Qwen</li>
-          <li>回到终端按 Enter，后端会通过 CDP 抓取 Cookie 并加密保存</li>
-          <li>点上方「验证」按钮测试是否可用</li>
+          <li>点击「一键登录」，程序会启动一个带调试端口的 Chrome</li>
+          <li>在弹出的 Chrome 里登录 DeepSeek / Qwen</li>
+          <li>登录完成（看到主界面）后回到本页面，点「立即抓取 Cookie」</li>
+          <li>程序自动从浏览器抓 cookie、加密保存</li>
+          <li>点「验证」确认能用，然后就可以开聊了</li>
         </ol>
       </section>
 
