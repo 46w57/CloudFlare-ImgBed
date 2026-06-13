@@ -24,11 +24,17 @@ def progress_hook(d: dict) -> None:
 def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    # Force H.264 "Direct video" for maximum player compatibility.
     ydl_opts = {
+        "format": "b[vcodec=h264]/best",
         "outtmpl": str(OUT_DIR / "%(title).80B [%(id)s].%(ext)s"),
         "noplaylist": True,
         "concurrent_fragment_downloads": 4,
         "progress_hooks": [progress_hook],
+        "merge_output_format": "mp4",
+        "postprocessor_args": {
+            "ffmpeg_o": ["-c", "copy", "-movflags", "+faststart"],
+        },
         "http_headers": {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
